@@ -23,7 +23,7 @@ También se pueden lanzar haciendo doble click sobre cada binario
 
 # Notas finales
 En el zip hay un total de 4 prácticas y un proyecto final.
-Cada uan de las prácticas esta estructurada con un fichero basico y otro pensado para que hagáis las pruebas y las respectivas entregas
+Cada una de las prácticas esta estructurada con un fichero basico y otro pensado para que hagáis las pruebas y las respectivas entregas
 El fichero básico en cada una de las prácticas esta nombrado como GpO_01.cpp, GpO_02.cpp etc.
 El fichero de entrega, que es una copia del fichero básico en el que se realizarán los ejercicios, está nombreado como GpO_0X_entrega.cpp
 Esto nos permitirá dejar intacto el fichero original y hacer los ejercicios en el fichero de entrega.
