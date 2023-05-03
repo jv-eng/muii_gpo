@@ -16,24 +16,24 @@ const char *prac = "OpenGL(GpO)";   // Nombre de la practica (aparecera en el ti
 #define GLSL(src) "#version 330 core\n" #src
 
 const char *vertex_prog = GLSL(
-                                  layout(location = 0) in vec3 pos;
-                                  layout(location = 1) in vec3 color;
-                                  out vec3 col;
-                                  uniform mat4 MVP = mat4(1.0f);
-                                  void main() {
-                                      gl_Position = MVP * vec4(pos,
-                                                               1); // Construyo coord homog�neas y aplico matriz transformacion M
-                                      col = color;                     // Paso color a fragment shader
-                                  }
-                          );
+        layout(location = 0) in vec3 pos;
+        layout(location = 1) in vec3 color;
+        out vec3 col;
+        uniform mat4 MVP = mat4(1.0f);
+        void main() {
+            gl_Position = MVP * vec4(pos,
+                                     1); // Construyo coord homog�neas y aplico matriz transformacion M
+            col = color; // Paso color a fragment shader
+        }
+);
 
 
 const char *fragment_prog = GLSL(
-                                    in vec3 col;
-                                    void main() {
-                                        gl_FragColor = vec4(col, 1);
-                                    }
-                            );
+    in vec3 col;
+    void main() {
+        gl_FragColor = vec4(col, 1);
+    }
+);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ objeto crear_cubo(void) {
                     1, 5, 6,
                     1, 6, 2,
                     2, 6, 7,
-                    2, 7, 3,};
+                    3, 2, 7,};
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -106,6 +106,64 @@ objeto crear_cubo(void) {
     return obj;
 }
 
+objeto crear_octaedro(void) {
+    objeto obj;
+    GLuint VAO;
+    GLuint buffer, i_buffer;
+
+    GLfloat vertex_data[] =
+            { // posicion vertice        // color vertice
+                    0.0f, 0.0f, 1.0f, 1.00f, 1.00f, 0.0f,
+                    1.0f, 0.0f, 0.0f, 0.00f, 0.00f, 1.00f,
+                    0.0f, 1.0f, 0.0f, 1.00f, 0.00f, 0.00f,
+                    -1.0f, 0.0f, 0.0f, 0.00f, 1.00f, 1.00f,
+                    0.0f, -1.0f, 0.0f, 0.00f, 1.00f, 0.00f,
+                    0.0f, 0.0f, -1.0f, 1.00f, 0.00f, 1.00f,
+            };
+
+    GLbyte indices[] =
+            {
+                0, 4, 1,
+                0, 1, 2,
+                0, 2, 3,
+                0, 3, 4,
+                1, 4, 5,
+                1, 5, 2,
+                2, 5, 3,
+                3, 5, 4,
+                };
+
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+
+    // Especifico como encontrar 1er argumento (atributo 0) del vertex shader
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+    // Defino 2� argumento (atributo 1) del vertex shader
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
+
+    glGenBuffers(1, &i_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);  // Mandamos buffer con �ndices.
+
+    glBindVertexArray(0);  //Cerramos Vertex Array con todo listo para ser pintado
+
+    obj.VAO = VAO;
+    obj.Nv = 6;
+    obj.Ni = 8 * 3; // 8 triangulos * 3 vertices
+    obj.tipo_indice = GL_UNSIGNED_BYTE;
+
+    return obj;
+}
+
+
 void dibujar_indexado(objeto obj) {
     // Activamos VAO asociado a obj1 (cubo) y lo dibujamos con glDrawElements
     glBindVertexArray(obj.VAO);
@@ -117,7 +175,10 @@ void dibujar_indexado(objeto obj) {
 // Compilaci�n programas a ejecutar en la tarjeta gr�fica:  vertex shader, fragment shaders
 // Opciones generales de render de OpenGL
 void init_scene() {
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     obj1 = crear_cubo();  // Datos del objeto, mandar a GPU
+    obj2 = crear_octaedro();
     prog = Compile_Link_Shaders(vertex_prog, fragment_prog); // Mandar programas a GPU, compilar y crear programa en GPU
     glUseProgram(prog);    // Indicamos que programa vamos a usar
 }
@@ -136,22 +197,30 @@ mat4 Proy, View, M;
 // Actualizar escena: cambiar posici�n objetos, nuevos objetros, posici�n c�mara, luces, etc.
 void render_scene() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);  // Especifica color para el fondo (RGB+alfa)
-    glClear(GL_COLOR_BUFFER_BIT);          // Aplica color asignado borrando el buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);          // Aplica color asignado borrando el buffer
 
     float t = (float) glfwGetTime();  // Contador de tiempo en segundos
 
     ///////// C�digo para actualizar escena  /////////
-    Proy = perspective(40.0f, 4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
+    Proy = perspective(glm::radians(40.0f), 4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
     View = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
 
     mat4 T, R, S;
 
-    M = rotate(30.0f, vec3(0.0f, 0.0f, 1.0f));
-
+    // cubo 1
+    R = rotate(glm::radians(30.0f*t), vec3(0.0f, 0.0f, 1.0f));
+    M = R;
     transfer_mat4("MVP", Proy * View * M);
     dibujar_indexado(obj1);
 
-    ////////////////////////////////////////////////////////
+    // octaedro
+    T = translate(glm::vec3(2.5f * cos(t), 2.5f * sin(t), 0));
+    R = rotate(glm::radians(50.0f*t), vec3(1.0f, 0.0f, 0.0f));
+    S = scale(glm::vec3(0.6f,0.6f,0.6f));
+
+    M = T * R * S;
+    transfer_mat4("MVP", Proy * View * M);
+    dibujar_indexado(obj2); 
 
 }
 
@@ -205,7 +274,6 @@ void show_info() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
 // Callback de cambio tama�o
 void ResizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -216,11 +284,15 @@ void ResizeCallback(GLFWwindow *window, int width, int height) {
 
 static void KeyCallback(GLFWwindow *window, int key, int code, int action, int mode) {
     //fprintf(stdout, "Key %d Code %d Act %d Mode %d\n", key, code, action, mode);
-    switch (key) {
-        case GLFW_KEY_ESCAPE:
-            glfwSetWindowShouldClose(window, true);
-            break;
-    }
+	if (key == GLFW_KEY_ESCAPE)
+		glfwSetWindowShouldClose(window, true);
+	else if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+	{
+		printf("Cambiando figuras\n");
+        objeto aux = obj1;
+        obj1 = obj2;
+        obj2 = aux;
+	}
 }
 
 

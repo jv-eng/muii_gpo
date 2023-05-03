@@ -129,29 +129,34 @@ vec3 up = vec3(0, 0, 1);
 
 float zfar = 25.0f;
 float znear = 1.0f;
+float d=8.0f, az=0.0f, el=0.6f;//distancia, azimuth, elevacion
 
 mat4 Proy, View, M;
 
-
 // Actualizar escena: cambiar posici�n objetos, nuevos objetros, posici�n c�mara, luces, etc.
 void render_scene() {
+    glEnable(GL_DEPTH_TEST);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);  // Especifica color para el fondo (RGB+alfa)
-    glClear(GL_COLOR_BUFFER_BIT);          // Aplica color asignado borrando el buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);      // Aplica color asignado borrando el buffer
 
     float t = (float) glfwGetTime();  // Contador de tiempo en segundos
 
+    glEnable(GL_CULL_FACE);
     ///////// C�digo para actualizar escena  /////////
-    Proy = perspective(40.0f, 4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
+    pos_obs = d * vec3(sin(az) * cos(el),  cos(az) * cos(el),  sin(el) );
+
+    Proy = perspective(glm::radians(40.0f),4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
     View = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
 
     mat4 T, R, S;
 
-    M = rotate(30.0f, vec3(0.0f, 0.0f, 1.0f));
+    M = rotate(glm::radians(30.0f*t), vec3(0.0f, 0.0f, 1.0f));
 
     transfer_mat4("MVP", Proy * View * M);
     dibujar_indexado(obj1);
 
     ////////////////////////////////////////////////////////
+    
 
 }
 
@@ -223,11 +228,70 @@ static void KeyCallback(GLFWwindow *window, int key, int code, int action, int m
     }
 }
 
+void scroll(GLFWwindow* window, double dx, double dy) {
+    //mover segun signo de dy
+    if (dy < 0) {
+        if (d < 22) {
+            d += 0.25;
+        } else printf("No se puede mover mas, ya esta muy lejos.\n");
+    } else if (dy > 0) {
+        if (d > 4) {
+            d -= 0.25;
+        } else printf("No se puede alejar mas, ya esta muy cerca.\n");
+    }
+    //printf("d: %.1f\n", d);
+    //fprintf(stdout,"x %.1f y %.1f\n",dx, dy);
+}
+
+double xp = 0.0f, yp = 0.0f;
+GLfloat zp;
+
+void mover(GLFWwindow* window, double x, double y) {
+    double F=(0.007 * d);
+    printf("x = %.1f, y = %.1f\n",x,y);
+    //calcular posicion
+    double dx = x - xp, dy = y - yp; 
+    //incrementar angulos
+    az += F * dx;
+    el += F * dy;
+    //actualizar posiciones
+    xp = x;
+    yp = y;  
+}
+
+void pulsar(GLFWwindow* window, int Button, int Action, int Mode) {
+    glfwGetCursorPos(window,&xp,&yp);
+    //se ha pulsado el boton
+    if (Button == GLFW_MOUSE_BUTTON_1){
+        if (Action) {
+            printf("boton izq pulsado\n");
+            glfwSetCursorPosCallback(window,mover);
+        } else {
+            //se ha soltado el boton
+            printf("boton izq soltado\n");
+            glfwSetCursorPosCallback(window,NULL);
+        }
+    } else if (Button == GLFW_MOUSE_BUTTON_2 && Action){
+        yp = ALTO - yp;
+        glReadPixels((GLint)xp,(GLint)yp,1,1,GL_DEPTH_COMPONENT,GL_FLOAT,&zp);
+        fprintf(stdout, "xp= %.0f yp= %.0f zp= %.3f\n", xp, yp, zp);
+        float xn = 2 * (xp/ANCHO) - 1;
+        float yn = 2 * (yp/ALTO) - 1;
+        float zn = 2 * zp - 1;
+        fprintf(stdout, "xn= %.3f yn= %.3f zn= %.3f\n", xn, yn, zn);
+
+        float zcam = (-2 * znear * zfar)/ ((zfar + znear) + zn * (znear - zfar));
+        float xcam = - ((xn * zcam)/ Proy[0][0]);
+        float ycam = - ((yn * zcam)/ Proy[1][1]);
+        fprintf(stdout, "xcam= %.3f ycam= %.3f zcam= %.3f\n", xcam, ycam, zcam);
+    }
+    
+}
 
 void asigna_funciones_callback(GLFWwindow *window) {
     glfwSetWindowSizeCallback(window, ResizeCallback);
     glfwSetKeyCallback(window, KeyCallback);
+    glfwSetMouseButtonCallback(window,pulsar);
+    //glfwSetCursorPosCallback(window,mover);
+    glfwSetScrollCallback(window,scroll);
 }
-
-
-

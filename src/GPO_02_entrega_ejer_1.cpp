@@ -118,8 +118,10 @@ void dibujar_indexado(objeto obj) {
 // Opciones generales de render de OpenGL
 void init_scene() {
     obj1 = crear_cubo();  // Datos del objeto, mandar a GPU
+    obj2 = crear_cubo();
     prog = Compile_Link_Shaders(vertex_prog, fragment_prog); // Mandar programas a GPU, compilar y crear programa en GPU
     glUseProgram(prog);    // Indicamos que programa vamos a usar
+    glEnable(GL_DEPTH_TEST);
 }
 
 
@@ -140,17 +142,31 @@ void render_scene() {
 
     float t = (float) glfwGetTime();  // Contador de tiempo en segundos
 
+        
+    glEnable(GL_CULL_FACE);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     ///////// C�digo para actualizar escena  /////////
-    Proy = perspective(40.0f, 4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
+    Proy = perspective(glm::radians(40.0f),4.0f / 3.0f, znear, zfar);  //40� Y-FOV,  4:3 ,  ZNEAR, ZFAR
     View = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
 
     mat4 T, R, S;
 
-    M = rotate(30.0f, vec3(0.0f, 0.0f, 1.0f));
-
+    // cubo 1
+    R = rotate(glm::radians(30.0f*t), vec3(0.0f, 0.0f, 1.0f));
+    M = R;
     transfer_mat4("MVP", Proy * View * M);
     dibujar_indexado(obj1);
 
+
+    // cubo 2
+    S = glm::scale(glm::vec3(0.6,0.6,0.6));
+    R = rotate(glm::radians(50.0f*t), vec3(1.0f, 0.0f, 0.0f));
+    T = glm::translate(glm::vec3(2.5*cos(t),2.5*sin(t),0));
+    M = T * R * S;
+    transfer_mat4("MVP", Proy * View * M);
+    dibujar_indexado(obj2);
     ////////////////////////////////////////////////////////
 
 }

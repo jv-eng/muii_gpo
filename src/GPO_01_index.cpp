@@ -16,30 +16,24 @@ const char* prac = "OpenGL (GpO)";   // Nombre de la practica (aparecera en el t
 #define GLSL(src) "#version 330 core\n" #src
 
 const char* vertex_prog = GLSL(
-	layout(location = 0) in vec3 pos; 
-	layout(location = 1) in vec3 color;
-	out vec3 col;
-	uniform mat4 MVP=mat4(1.0f);
-	void main()
-	{
-		gl_Position = MVP*vec4(pos,1); // Construyo coord homog�neas y aplico matriz transformacion M
-		col = 1-color;//color;                             // Paso color a fragment shader
-	}
+layout(location = 0) in vec3 pos; 
+layout(location = 1) in vec3 color;
+out vec3 col;
+uniform mat4 MVP=mat4(1.0f);
+void main()
+ {
+  gl_Position = MVP*vec4(pos,1); // Construyo coord homog�neas y aplico matriz transformacion M
+  col = color;                             // Paso color a fragment shader
+ }
 );
 
 const char* fragment_prog = GLSL(
-	in vec3 col;
-	out vec3 outputColor;
-	void main() 
-	{
-		if (gl_FragCoord.x > 400) discard;
-		if (gl_FragCoord.y > 300) {
-			outputColor = vec3(1,0,0);
-		}
-		else {
-			outputColor = col;
-		}
-	}
+in vec3 col;
+out vec3 outputColor;
+void main() 
+ {
+	outputColor = col;
+ }
 );
 
 
@@ -49,13 +43,132 @@ const char* fragment_prog = GLSL(
 
 GLFWwindow* window;
 GLuint prog;
-objeto triangulo;
+objeto triangulo, cuadrado, hex;
+
+objeto crear_hex(void)
+{
+	objeto obj;
+	GLuint VAO;
+	GLuint buffer_pos, buffer_col, buffer_index;
+
+	GLubyte index [] = {1, 2, 3, 4, 5, 6, 1};
+	GLfloat pos_data[7][3] = {0.0f, 0.0f, 0.0f,							// Vertice 1
+							  0.0f,  1.0f, 0.0f,						// Vertice 2
+							  0.0f,  1.0f/2.0f,  -(sqrt(3.0f)/2.0f), 	// Vertice 3
+							  0.0f, -1.0f/2.0f,  -(sqrt(3.0f)/2.0f),	// Vertice 4
+							  0.0f, -1.0f,         0.0f,				// Vertice 5
+							  0.0f, -1.0f/2.0f,   (sqrt(3.0f)/2.0f),	// Vertice 6
+							  0.0f,  1.0f/2.0f,   (sqrt(3.0f)/2.0f)}; 	// Vertice 7
+
+	GLfloat color_data[7][3] = { 1.0f, 1.0f, 1.0f,
+								 1.0f, 0.0f, 0.0f,
+								 1.0f, 1.0f, 0.0f,
+								 0.0f, 1.0f, 0.0f,
+								 0.0f, 1.0f, 1.0f,
+								 0.0f, 0.0f, 1.0f,
+								 1.0f, 0.0f, 1.0f }; 
+
+	// Mando posiciones en un VBO
+	glGenBuffers(1, &buffer_pos); glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(pos_data), pos_data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Mando colores en otro VBO
+	glGenBuffers(1, &buffer_col); glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(color_data), color_data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+	// Creo y enlazo el VAO
+	glGenVertexArrays(1, &VAO);	glBindVertexArray(VAO);
+
+	// Indico donde hallar datos de posiciones dentro del VBO correspondiente
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
+	glEnableVertexAttribArray(0);  // Organizaci�n de los datos del atributo 0 (pos) del vertex shade
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Indico donde hallar datos de colores dentro del VBO correspondiente
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
+	glEnableVertexAttribArray(1);  // Organizaci�n de los datos del atributo 0 (pos) del vertex shade
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &buffer_index);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,buffer_index);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(index),index,GL_STATIC_DRAW);
+
+	glBindVertexArray(0);  //Cerramos VAO con todo listo para ser pintado
+
+	obj.VAO = VAO; obj.Nv = 6;  // Devuelvo objeto VAO + n�mero de vertices en estructura obj
+	obj.Ni = 8;
+
+	return obj;
+
+}
+
+objeto crear_cuadrado(void) {
+
+	objeto obj;
+	GLuint VAO;
+	GLuint buffer_pos, buffer_col, buffer_index;
+
+	GLubyte index [] = {0, 1, 2, 3};
+	GLfloat pos_data[4][3] = {0.0f, -1.0f,  1.0f,
+							  0.0f,  1.0f,  1.0f,
+							  0.0f,  1.0f, -1.0f,
+							  0.0f, -1.0f, -1.0f}; 
+
+	GLfloat color_data[4][3] = { 1.0f, 0.0f, 0.0f,  
+		                         0.0f, 1.0f, 0.0f,  
+								 0.0f, 0.0f, 1.0f,
+								 1.0f, 1.0f, 0.0f }; 
+
+	// Mando posiciones en un VBO
+	glGenBuffers(1, &buffer_pos); glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(pos_data), pos_data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Mando colores en otro VBO
+	glGenBuffers(1, &buffer_col); glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(color_data), color_data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Creo y enlazo el VAO
+	glGenVertexArrays(1, &VAO);	glBindVertexArray(VAO);
+
+	//mandar indices
+	glGenBuffers(1, &buffer_index);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_index);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index), index, GL_STATIC_DRAW);
+	
+	// Indico donde hallar datos de posiciones dentro del VBO correspondiente
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
+	glEnableVertexAttribArray(0);  // Organizaci�n de los datos del atributo 0 (pos) del vertex shade
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Indico donde hallar datos de colores dentro del VBO correspondiente
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
+	glEnableVertexAttribArray(1);  // Organizaci�n de los datos del atributo 0 (pos) del vertex shade
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);  //Cerramos VAO con todo listo para ser pintado
+
+	obj.VAO = VAO; obj.Nv = 4;  // Devuelvo objeto VAO + n�mero de vertices en estructura obj
+	obj.Ni = 4;
+
+	return obj;
+}
 
 objeto crear_triangulo(void)
 {
 	objeto obj;
 	GLuint VAO;
-	GLuint buffer_pos, buffer_col;
+	GLuint buffer_pos, buffer_col, buffer_index;
+
+	GLubyte index [] = {0, 1, 2};
 
 	GLfloat pos_data[3][3] = { 0.0f,  0.0000f,  1.0f,  // Posici�n vertice 1
 							   0.0f, -0.8660f, -0.5f,  // Posici�n vertice 2
@@ -78,6 +191,11 @@ objeto crear_triangulo(void)
 	// Creo y enlazo el VAO
 	glGenVertexArrays(1, &VAO);	glBindVertexArray(VAO);
 
+	//mandar indices
+	glGenBuffers(1, &buffer_index);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_index);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index), index, GL_STATIC_DRAW);
+	
 	// Indico donde hallar datos de posiciones dentro del VBO correspondiente
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
 	glEnableVertexAttribArray(0);  // Organizaci�n de los datos del atributo 0 (pos) del vertex shade
@@ -93,6 +211,7 @@ objeto crear_triangulo(void)
 	glBindVertexArray(0);  //Cerramos VAO con todo listo para ser pintado
 
 	obj.VAO = VAO; obj.Nv = 3;  // Devuelvo objeto VAO + n�mero de vertices en estructura obj
+	obj.Ni = 3;
 
 	return obj;
 
@@ -105,8 +224,12 @@ objeto crear_triangulo(void)
 void init_scene()
 {
 	triangulo = crear_triangulo();  // Preparar datos de objeto, mandar a GPU
-
+	cuadrado = crear_cuadrado();
+	hex = crear_hex();
 	// Mandar programas a GPU, compilar y crear programa en GPU
+
+	//char* vertex_prog = leer_codigo_de_fichero("prog.vs");	
+	//char* fragment_prog = leer_codigo_de_fichero("prog.fs");
 
 	// Compilear Shaders
 	GLuint VertexShaderID = compilar_shader(vertex_prog, GL_VERTEX_SHADER);
@@ -128,11 +251,11 @@ void init_scene()
 }
 
 
-vec3 pos_obs=vec3(10.0f,0.0f,0.0f);
+vec3 pos_obs=vec3(1.5f,0.0f,0.0f);
 vec3 target = vec3(0.0f,0.0f,0.0f);
 vec3 up = vec3(0,0,1);
 
-float fov = 35.0f, aspect = 4.0f / 3.0f;
+float fov = 40.0f, aspect = 4.0f / 3.0f;
 
 // Actualizar escena: cambiar posici�n objetos, nuevos objetros, posici�n c�mara, luces, etc.
 void render_scene()
@@ -149,22 +272,29 @@ void render_scene()
 	P = perspective(fov, aspect, 0.5f, 20.0f);  //40� FOV,  4:3 ,  Znear=0.5, Zfar=20
 	V = lookAt(pos_obs, target, up  );  // Pos camara, Lookat, head up
 	
-	//T = translate(0.0f, 0.0f, 3.0f*sin(t));  
-	//T = glm::translate(glm::vec3(0.0, 0.0, 3.0f*sin(t))); 
-	T = glm::translate(glm::vec3(3*cos(t),3*sin(t),0));
+	T = glm::translate(glm::vec3(0.0, 0.0, 3.0f*sin(t)));
 	
 	M = T;
 	transfer_mat4("MVP",P*V*M);
 	
 	// ORDEN de dibujar
+	//triangulo
 	glBindVertexArray(triangulo.VAO);              // Activamos VAO asociado al objeto
-    glDrawArrays(GL_TRIANGLES, 0, triangulo.Nv);   // Orden de dibujar (Nv vertices)	
+	glDrawElements(GL_TRIANGLES, triangulo.Ni, GL_UNSIGNED_BYTE, 0);
 	glBindVertexArray(0);
 
-	M = glm::translate(glm::vec3(0.0, 0.0, 3.0f*sin(t))); //usamos el código original
+	//hex
+	glBindVertexArray(hex.VAO);
+	M = glm::translate(glm::vec3(3*cos(t),-3*sin(t),0)); //usamos el código original
 	transfer_mat4("MVP",P*V*M);
-	glBindVertexArray(triangulo.VAO);
-	glDrawArrays(GL_TRIANGLES, 0, triangulo.Nv);
+	glDrawElements(GL_TRIANGLE_FAN,hex.Ni,GL_UNSIGNED_BYTE,0);
+	glBindVertexArray(0);    
+
+	//cuadrado
+	glBindVertexArray(cuadrado.VAO);
+	M = glm::translate(glm::vec3(3*cos(t),3*sin(t),0)); //usamos el código original
+	transfer_mat4("MVP",P*V*M);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	glBindVertexArray(0);                          // Desconectamos VAO
 
 	////////////////////////////////////////////////////////
@@ -226,24 +356,20 @@ void ResizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 	ALTO = height;	ANCHO = width;
-	aspect = (float)(ANCHO/ALTO);
-	fov =  glm::radians((float)((ALTO * 30) / 600));
-
 }
 
 // Callback de pulsacion de tecla
 static void KeyCallback(GLFWwindow* window, int key, int code, int action, int mode)
 {
-	//acercar y alejar objeto
-	if (key == GLFW_KEY_DOWN) {
-		pos_obs+=vec3(0.1,0,0);
-	} else if (key == GLFW_KEY_UP) {
-		pos_obs-=vec3(0.1,0,0);
-	}
-	printf("%f\n",pos_obs.x);
-
 	fprintf(stdout, "Key %d Code %d Act %d Mode %d\n", key, code, action, mode);
 	if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(window, true);
+	else if (key == GLFW_KEY_F1){
+		printf("Recompilando shaders\n");
+		char* vertex_prog = leer_codigo_de_fichero("prog.vs");	
+		char* fragment_prog = leer_codigo_de_fichero("prog.fs");
+		GLuint VertexShaderID = compilar_shader(vertex_prog, GL_VERTEX_SHADER);
+		GLuint FragmentShaderID = compilar_shader(fragment_prog, GL_FRAGMENT_SHADER);
+	}
 }
 
 
