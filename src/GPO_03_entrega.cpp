@@ -1,13 +1,13 @@
-/************************  GPO_01 ************************************
-ATG, 2019
+/************************  GPO_03 ************************************
+ATG, 2022
 ******************************************************************************/
+
 
 #include <GpO.h>
 
-// TAMAï¿½O y TITULO INICIAL de la VENTANA
-int ANCHO = 800, ALTO = 600;  // Tamaï¿½o inicial ventana
-const char* prac = "OpenGL (GpO)";   // Nombre de la practica (aparecera en el titulo de la ventana).
-
+// TAMAÑO y TITULO INICIAL de la VENTANA
+int ANCHO = 800, ALTO = 600;  // Tamaño inicial ventana
+const char* prac = "OpenGL Texturas (GpO)";   // Nombre de la practica (aparecera en el titulo de la ventana).
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////     CODIGO SHADERS 
@@ -16,24 +16,24 @@ const char* prac = "OpenGL (GpO)";   // Nombre de la practica (aparecera en el t
 #define GLSL(src) "#version 330 core\n" #src
 
 const char* vertex_prog = GLSL(
-layout(location = 0) in vec3 pos; 
-layout(location = 1) in vec3 color;
-out vec3 col;
-uniform mat4 MVP=mat4(1.0f);
-void main()
- {
-  gl_Position = MVP*vec4(pos,1); // Construyo coord homogï¿½neas y aplico matriz transformacion M
-  col = color;                             // Paso color a fragment shader
- }
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec2 uv;
+out vec2 UV;
+uniform mat4 MVP;
+void main(){
+	gl_Position = MVP*vec4(pos, 1);
+	UV = uv;
+}
 );
 
 const char* fragment_prog = GLSL(
-in vec3 col;
-out vec3 outputColor;
-void main() 
- {
-	outputColor = col;
- }
+in vec2 UV;
+out vec3 col;
+uniform sampler2D unit;
+void main()
+{
+	col= texture(unit, UV).rgb;
+}
 );
 
 
@@ -43,148 +43,142 @@ void main()
 
 GLFWwindow* window;
 GLuint prog;
-objeto triangulo;
+objeto obj;
 
-objeto crear_triangulo(void)
+objeto crear_cuadrado(void)
 {
 	objeto obj;
 	GLuint VAO;
-	GLuint buffer_pos, buffer_col;
-
-	GLfloat pos_data[3][3] = { 0.0f,  0.0000f,  1.0f,  // Posiciï¿½n vertice 1
-							   0.0f, -0.8660f, -0.5f,  // Posiciï¿½n vertice 2
-							   0.0f,  0.8660f, -0.5f}; // Posiciï¿½n vertice 3
-
-	GLfloat color_data[3][3] = { 1.0f, 0.0f, 0.0f,  // Color vertice 1
-		                         0.0f, 1.0f, 0.0f,  // Color vertice 2 
-								 0.0f, 0.0f, 1.0f }; // Color vertice 3
-
-	// Mando posiciones en un VBO
-	glGenBuffers(1, &buffer_pos); glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(pos_data), pos_data, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// Mando colores en otro VBO
-	glGenBuffers(1, &buffer_col); glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(color_data), color_data, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	GLuint buffer, i_buffer;
 
 
-	// Creo y enlazo el VAO
-	glGenVertexArrays(1, &VAO);	glBindVertexArray(VAO);
+	static const GLfloat vertex_data[] = {   //  POsicion XYZ      (u,v)
+											-1.0f,  1.0f, 0.0f,   0.5,0.5,  // Vertice 0
+											 1.0f,  1.0f, 0.0f,   0.5,0.5,  // Vertice 1
+											 1.0f, -1.0f, 0.0f,   0.5,0.5,  // Vertice 2
+											-1.0f, -1.0f, 0.0f,   0.5,0.5}; // Vertice 3
+	
 
-	// Indico donde hallar datos de posiciones dentro del VBO correspondiente
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
-	glEnableVertexAttribArray(0);  // Organizaciï¿½n de los datos del atributo 0 (pos) del vertex shade
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	GLbyte indices[] = { 0, 3, 2, 0, 2, 1 };
+	obj.Ni = 2 * 3;
+	obj.tipo_indice = GL_UNSIGNED_BYTE;
 
-	// Indico donde hallar datos de colores dentro del VBO correspondiente
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_col);
-	glEnableVertexAttribArray(1);  // Organizaciï¿½n de los datos del atributo 0 (pos) del vertex shade
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
 
-	glBindVertexArray(0);  //Cerramos VAO con todo listo para ser pintado
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
 
-	obj.VAO = VAO; obj.Nv = 3;  // Devuelvo objeto VAO + nï¿½mero de vertices en estructura obj
+
+	// Defino 1er argumento (atributo 0) del vertex shader (pos)
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	// Defino 2º argumento (atributo 1) del vertex shader  (uv)
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
+
+	glGenBuffers(1, &i_buffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Cerramos Vertex Array con todo lidto para ser pintado. Dejamos enlazado
+	// el buffer de indices (i_buffer) dentro del VAO para que cuando enlacemos 
+	// el VAO para pintar este todo listo sin tener que enlazar indices
+	glBindVertexArray(0);
+
+	obj.VAO = VAO;
 
 	return obj;
 
 }
 
 
-// Preparaciï¿½n de los datos de los objetos a dibujar, envialarlos a la GPU
-// Compilaciï¿½n programas a ejecutar en la tarjeta grï¿½fica:  vertex shader, fragment shaders
-// Opciones generales de render de OpenGL
-void init_scene()
+void dibujar_indexado(objeto obj)
 {
-	triangulo = crear_triangulo();  // Preparar datos de objeto, mandar a GPU
-
-	// Mandar programas a GPU, compilar y crear programa en GPU
-
-	// Compilear Shaders
-	GLuint VertexShaderID = compilar_shader(vertex_prog, GL_VERTEX_SHADER);
-	GLuint FragmentShaderID = compilar_shader(fragment_prog, GL_FRAGMENT_SHADER);
-
-	// Enlazar sharders en el programa final
-	prog = glCreateProgram();
-	glAttachShader(prog, VertexShaderID);  glAttachShader(prog, FragmentShaderID);
-	glLinkProgram(prog); check_errores_programa(prog);
-
-	// Limpieza final de los shaders una vez compilado el programa
-	glDetachShader(prog, VertexShaderID);  glDeleteShader(VertexShaderID);
-	glDetachShader(prog, FragmentShaderID);  glDeleteShader(FragmentShaderID);
-
-	// Alternativamente usar la funciï¿½n Compile_Link_Shaders().
-	//	prog = Compile_Link_Shaders(vertex_prog, fragment_prog); 
-
-	glUseProgram(prog);    // Indicamos que programa vamos a usar 
+	// Activamos VAO asociado a obj y lo dibujamos con glDrawElements 
+	glBindVertexArray(obj.VAO);
+	glDrawElements(GL_TRIANGLES, obj.Ni, obj.tipo_indice, (void*)0);  // Dibujar (indexado)
+	glBindVertexArray(0);  //Desactivamos VAO activo.
 }
 
 
-vec3 pos_obs=vec3(1.5f,0.0f,0.0f);
-vec3 target = vec3(0.0f,0.0f,0.0f);
-vec3 up = vec3(0,0,1);
+vec3 pos_obs = vec3(3.0f, 3.0f, 2.0f);
+vec3 target = vec3(0.0f, 0.0f, 0.0f);
+vec3 up = vec3(0, 0, 1);
 
-float fov = 40.0f, aspect = 4.0f / 3.0f;
+mat4 PP, VV; // matrices de proyeccion y perspectiva
 
-// Actualizar escena: cambiar posiciï¿½n objetos, nuevos objetros, posiciï¿½n cï¿½mara, luces, etc.
+// Preparación de los datos de los objetos a dibujar, envialarlos a la GPU
+// Compilación programas a ejecutar en la tarjeta gráfica:  vertex shader, fragment shaders
+// Opciones generales de render de OpenGL
+// Creación de matrices de perspectiva y punto de vista.
+void init_scene()
+{
+	GLuint tex0;
+
+	prog = Compile_Link_Shaders(vertex_prog, fragment_prog); // Mandar programas a GPU, compilar y crear programa en GPU
+	glUseProgram(prog);    // Indicamos que programa vamos a usar 
+
+	obj = crear_cuadrado();  // Datos del objeto, mandar a GPU
+
+	PP = perspective(glm::radians(25.0f), 4.0f / 3.0f, 0.1f, 20.0f);  //40º Y-FOV,  4:3 ,  Znear=0.1, Zfar=20
+	VV = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
+
+	// Carga imagen (en el directorio /data/ al mismo nivel que /Debug),
+	// la guarda en el objeto tex0 y lo asocia al texture slot 0 (GL_TEXTURE0)
+	tex0 = cargar_textura("./data/foto0.jpg", GL_TEXTURE0);
+
+	glEnable(GL_CULL_FACE);
+}
+
+
+// Actualizar escena: cambiar posición objetos, nuevos objetros, posición cámara, luces, etc.
 void render_scene()
 {
-	glClearColor(0.0f,0.0f,0.0f,1.0f);  // Especifica color para el fondo (RGB+alfa)
+	glClearColor(0.0f,0.6f,0.0f,1.0f);  // Especifica color para el fondo (RGB+alfa)
 	glClear(GL_COLOR_BUFFER_BIT);          // Aplica color asignado borrando el buffer
+	
 
 	float t = (float)glfwGetTime();  // Contador de tiempo en segundos 
 
+	///////// Aqui vendría nuestr código para actualizar escena  /////////	
+	mat4 M, T, R, S;
+	M = mat4(1.0f);
 
-	///////// Actualizacion matrices M, V, P  /////////	
-	mat4 P,V,M,T,R,S;
-
-	P = perspective(fov, aspect, 0.5f, 20.0f);  //40ï¿½ FOV,  4:3 ,  Znear=0.5, Zfar=20
-	V = lookAt(pos_obs, target, up  );  // Pos camara, Lookat, head up
-	
-	//T = translate(0.0f, 0.0f, 3.0f*sin(t));  
-	T = glm::translate(glm::vec3(0.0, 0.0, 3.0f*sin(t))); 
-	
-	M = T;
-	transfer_mat4("MVP",P*V*M);
-	
-	// ORDEN de dibujar
-	glBindVertexArray(triangulo.VAO);              // Activamos VAO asociado al objeto
-    glDrawArrays(GL_TRIANGLES, 0, triangulo.Nv);   // Orden de dibujar (Nv vertices)	
-	glBindVertexArray(0);                          // Desconectamos VAO
-
-	////////////////////////////////////////////////////////
-
+	transfer_mat4("MVP", PP*VV*M); 
+	dibujar_indexado(obj);
 }
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// PROGRAMA PRINCIPAL
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
-{
+{		
 	init_GLFW();            // Inicializa lib GLFW
 	window = Init_Window(prac);  // Crea ventana usando GLFW, asociada a un contexto OpenGL	X.Y
-	load_Opengl();         // Carga funciones de OpenGL, comprueba versiï¿½n.
+	load_Opengl();         // Carga funciones de OpenGL, comprueba versión.
 	init_scene();          // Prepara escena
-	
-	glfwSwapInterval(1);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		render_scene();
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-		show_info();
+		glfwSwapBuffers(window); glfwPollEvents();
+		show_info();		
 	}
 
 	glfwTerminate();
+
 	exit(EXIT_SUCCESS);
 }
 
 
-//////////  FUNCION PARA MOSTRAR INFO OPCIONAL EN EL TITULO DE VENTANA  //////////
+
+/////////////////////  FUNCION PARA MOSTRAR INFO EN TITULO DE VENTANA  //////////////
 void show_info()
 {
 	static int fps = 0;
@@ -204,31 +198,31 @@ void show_info()
 
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////  ASIGNACON FUNCIONES CALLBACK
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-// Callback de cambio tamaï¿½o de ventana
+// Callback de cambio tamaño
 void ResizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
-	ALTO = height;	ANCHO = width;
+	ALTO = height;
+	ANCHO = width;
 }
 
-// Callback de pulsacion de tecla
 static void KeyCallback(GLFWwindow* window, int key, int code, int action, int mode)
 {
-	fprintf(stdout, "Key %d Code %d Act %d Mode %d\n", key, code, action, mode);
-	if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(window, true);
-}
+	//fprintf(stdout, "Key %d Code %d Act %d Mode %d\n", key, code, action, mode);
+	switch (key)
+	{
+	  case GLFW_KEY_ESCAPE:	glfwSetWindowShouldClose(window, true); break;
+	}
 
+}
 
 void asigna_funciones_callback(GLFWwindow* window)
 {
 	glfwSetWindowSizeCallback(window, ResizeCallback);
 	glfwSetKeyCallback(window, KeyCallback);
 }
-
-
-

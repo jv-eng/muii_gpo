@@ -4,8 +4,8 @@ ATG, 2020
 
 #include <GpO.h>
 
-// TAMAÑO y TITULO INICIAL de la VENTANA
-int ANCHO = 800, ALTO = 600;  // Tamaño inicial ventana
+// TAMAï¿½O y TITULO INICIAL de la VENTANA
+int ANCHO = 800, ALTO = 600;  // Tamaï¿½o inicial ventana
 const char* prac = "OpenGL(GpO) Iluminacion";   // Nombre de la practica (aparecera en el titulo de la ventana).
 
 
@@ -15,71 +15,56 @@ const char* prac = "OpenGL(GpO) Iluminacion";   // Nombre de la practica (aparec
 
 #define GLSL(src) "#version 330 core\n" #src
 
-//  PROGRAMA 1 (Implementacion por vertices de iluminacion difusa con luz lejana)
-const char* vertex_prog1 = GLSL(
-layout(location = 0) in vec3 pos;
-layout(location = 1) in vec3 normal;
-out float ilu;
-
-uniform mat4 M;
-uniform mat4 PV;
-uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
-
-void main() {
-	gl_Position = PV*M*vec4(pos, 1);
-
-	mat3 M_adj = mat3(transpose(inverse(M)));
-	vec3 n = M_adj * normal;
-
-	vec3 nn = normalize(n);
-	float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
-	ilu = (0.15 + 0.85*difusa);  //15% Ambiente + 85% difusa
-}
-);
-
-const char* fragment_prog1 = GLSL(
-in float ilu;     // Entrada = iluminación de vertices (interpolados en fragmentos)
-out vec3 col;  // Color fragmento
-void main()
-{
-	col = vec3(1, 1, 0.9);
-	col = col*ilu;
-}
-);
 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-//  PROGRAMA 2 (aqui implementaremos version en fragmentos)
-const char* vertex_prog2 = GLSL(       
+//  PROGRAMA 3 (aqui implementaremos ambas versiones)
+const char* vertex_prog3 = GLSL( 
 	layout(location = 0) in vec3 pos;
-layout(location = 1) in vec3 normal;
-out float ilu;
+	layout(location = 1) in vec3 normal;
+	out vec3 n;
+	out float ilu;
 
-uniform mat4 M;
-uniform mat4 PV;
-uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
+	uniform mat4 M;
+	uniform mat4 PV;
+	uniform int ALTO;
+	uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
 
-void main() {
-	gl_Position = PV * M * vec4(pos, 1);
+	
+	void main() {
+		gl_Position = PV * M * vec4(pos, 1);
 
-	mat3 M_adj = mat3(transpose(inverse(M)));
-	vec3 n = M_adj * normal;
-
-	vec3 nn = normalize(n);
-	float difusa = dot(luz, nn); if (difusa < 0) difusa = 0;
-	ilu = (0.15 + 0.85 * difusa);  //15% Ambiente + 85% difusa
-}
+		mat3 M_adj = mat3(transpose(inverse(M)));
+		n = M_adj * normal;
+		if (pos[2] <= ALTO/2){
+			vec3 nn = normalize(n);
+			float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
+			ilu = (0.15 + 0.85*difusa);  //15% Ambiente + 85% difusa
+		}
+	}
 );
 
-const char* fragment_prog2 = GLSL(
-in float ilu;     // Entrada = iluminación de vertices (interpolados en fragmentos)
-out vec3 col;  // Color fragmento
-void main()
-{
-	col = vec3(1, 1, 1);
-	col = col*ilu;
-}
+const char* fragment_prog3 = GLSL(
+	in vec3 n;     // Entrada = iluminaciï¿½n de vertices (interpolados en fragmentos)
+	in float ilu;     // Entrada = iluminaciï¿½n de vertices (interpolados en fragmentos)	
+	out vec3 col;  // Color fragmento
+	uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
+	uniform int ALTO;
+
+	void main()
+	{
+		if (gl_FragCoord.y > ALTO/2){
+			col = vec3(1, 1, 0.9);
+			col = col*ilu;
+		} else {
+			vec3 nn = normalize(n);
+			float difusa = dot(luz, nn); if (difusa < 0) difusa = 0;
+			float ilu = (0.15 + 0.85 * difusa);  //15% Ambiente + 85% difusa
+
+			col = vec3(1, 1, 1);
+			col = col*ilu;
+		}
+	}
 );
 
 ////////////////////////////////  FIN PROGRAMAS GPU (SHADERS) //////////////////////////////////
@@ -89,7 +74,7 @@ void main()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 GLFWwindow* window;
-GLuint prog[2];
+GLuint prog;
 objeto modelo;
 
 
@@ -99,8 +84,8 @@ void dibujar_indexado(objeto obj)
   glBindVertexArray(obj.VAO);              // Activamos VAO asociado al objeto
   glDrawElements(GL_TRIANGLES,obj.Ni,obj.tipo_indice,(void*)0);  // Dibujar (indexado)
   glBindVertexArray(0);
+  
 }
-
 
 // Variables globales
 mat4 Proy,View,M;
@@ -109,17 +94,15 @@ vec3 target=vec3(0.0f,0.9f,0.0f);
 vec3 up = vec3(0, 1, 0);
 
 
-// Compilación programas a ejecutar en la tarjeta gráfica:  vertex shader, fragment shaders
-// Preparación de los datos de los objetos a dibujar, envialarlos a la GPU
+// Compilaciï¿½n programas a ejecutar en la tarjeta grï¿½fica:  vertex shader, fragment shaders
+// Preparaciï¿½n de los datos de los objetos a dibujar, envialarlos a la GPU
 // Opciones generales de render de OpenGL
 void init_scene()
 {
-	prog[0] = Compile_Link_Shaders(vertex_prog1, fragment_prog1); // Compile shaders prog1
-	prog[1] = Compile_Link_Shaders(vertex_prog2, fragment_prog2); // Compile shaders prog2
-	
-	glUseProgram(prog[0]);
+	prog = Compile_Link_Shaders(vertex_prog3, fragment_prog3);
+	glUseProgram(prog);
 
-	modelo=cargar_modelo("./data/esfera_520_n.bix");
+	modelo=cargar_modelo("./data/esfera_106_n.bix");
 
 	Proy = glm::perspective(glm::radians(55.0f), 4.0f / 3.0f, 0.1f, 100.0f); 
 	View = glm::lookAt(campos,target,up);
@@ -127,8 +110,9 @@ void init_scene()
 	glEnable(GL_CULL_FACE); glEnable(GL_DEPTH_TEST);
 }
 
-
-// Actualizar escena: cambiar posición objetos, nuevos objetros, posición cámara, luces, etc.
+//variables globales
+float az = 0, el = 0.75;
+// Actualizar escena: cambiar posiciï¿½n objetos, nuevos objetros, posiciï¿½n cï¿½mara, luces, etc.
 void render_scene()
 {
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
@@ -136,10 +120,13 @@ void render_scene()
 
 	float tt = (float)glfwGetTime();  // Contador de tiempo en segundos 
 	
-	vec3 xy=vec3(cos(tt), 1.0f, sin(tt));
-	M = translate(xy)*rotate(50*tt, vec3(0.0f, 1.0f, 0.0f));   // Mov modelo 
+	vec3 luz = glm::vec3(cos(el) * cos(az), sin(el), cos(el) * sin(az));
+
+	vec3 xy = vec3(cos(tt), 1.0f, sin(tt));
+	M = translate(xy)*rotate(glm::radians(50*tt), vec3(0.0f, 1.0f, 0.0f));   // Mov modelo 
 	
-	transfer_mat4("PV",Proy*View); transfer_mat4("M", M);
+	transfer_mat4("PV",Proy*View); transfer_mat4("M", M); transfer_vec3("luz",luz);
+	transfer_int("ALTO",ALTO);
 	dibujar_indexado(modelo);
 	
 }
@@ -152,7 +139,7 @@ int main(int argc, char* argv[])
 {
 	init_GLFW();            // Inicializa lib GLFW
 	window = Init_Window(prac);  // Crea ventana usando GLFW, asociada a un contexto OpenGL	X.Y
-	load_Opengl();         // Carga funciones de OpenGL, comprueba versión.
+	load_Opengl();         // Carga funciones de OpenGL, comprueba versiï¿½n.
 	init_scene();          // Prepara escena
 
 	while (!glfwWindowShouldClose(window))
@@ -193,7 +180,7 @@ void show_info()
 //////////////////////  INTERACCION  TECLADO RATON
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Callback de cambio tamaño
+// Callback de cambio tamaï¿½o
 void ResizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -201,11 +188,41 @@ void ResizeCallback(GLFWwindow* window, int width, int height)
 	ANCHO = width;
 }
 
+int actual = 0;
 static void KeyCallback(GLFWwindow* window, int key, int code, int action, int mode)
 {	
+	float tmp = M_PI / 2;
 	switch (key)
 	{
 	 case GLFW_KEY_ESCAPE:	glfwSetWindowShouldClose(window, true); break;	
+	 case GLFW_KEY_UP:
+	 	if (action) {
+			if (el < tmp) {
+				el += 0.02;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_DOWN:
+	 	if (action) {
+			if (-tmp < el) {
+				el -= 0.02;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_LEFT:
+	 	if (action) {
+			if (az < tmp) {
+				az += 0.02;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_RIGHT:
+	 	if (action) {
+			if (-tmp < az) {
+				az -= 0.02;
+			}
+		}
+	 	break;
 	}
 }
 

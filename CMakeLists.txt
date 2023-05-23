@@ -61,11 +61,32 @@ add_executable(gpo_02 ${GPO_SOURCE_FILES})
 target_link_libraries(gpo_02 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
 
 set(GPO_SOURCE_FILES include/stb/stb_image.h
-					 include/GpO.h
-					 src/GPO_02_entrega.cpp
-					 src/GPO_aux.cpp)
-add_executable(gpo_02_entrega ${GPO_SOURCE_FILES})
-target_link_libraries(gpo_02_entrega PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+include/GpO.h
+src/GPO_02_entrega_ejer_1.cpp
+src/GPO_aux.cpp)
+add_executable(gpo_02_entrega_ejer_1 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_02_entrega_ejer_1 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+include/GpO.h
+src/GPO_02_entrega_ejer_2.cpp
+src/GPO_aux.cpp)
+add_executable(gpo_02_entrega_ejer_2 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_02_entrega_ejer_2 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+include/GpO.h
+src/GPO_02_entrega_ejer_3.cpp
+src/GPO_aux.cpp)
+add_executable(gpo_02_entrega_ejer_3 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_02_entrega_ejer_3 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+include/GpO.h
+src/GPO_02_entrega_ejer_4.cpp
+src/GPO_aux.cpp)
+add_executable(gpo_02_entrega_ejer_4 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_02_entrega_ejer_4 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
 
 set(GPO_SOURCE_FILES include/stb/stb_image.h
 					 include/GpO.h
@@ -83,6 +104,27 @@ target_link_libraries(gpo_03_entrega PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_i
 
 set(GPO_SOURCE_FILES include/stb/stb_image.h
 					 include/GpO.h
+					 src/GPO_03_entrega_ejer1.cpp
+					 src/GPO_aux.cpp)
+add_executable(gpo_03_entrega_ejer1 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_03_entrega_ejer1 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_03_entrega_ejer2.cpp
+					 src/GPO_aux.cpp)
+add_executable(gpo_03_entrega_ejer2 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_03_entrega_ejer2 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_03_entrega_ejer3.cpp
+					 src/GPO_aux.cpp)
+add_executable(gpo_03_entrega_ejer3 ${GPO_SOURCE_FILES})
+target_link_libraries(gpo_03_entrega_ejer3 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
 					 src/GPO_04.cpp
 					 src/GPO_aux.cpp)
 add_executable(gpo_04 ${GPO_SOURCE_FILES})
@@ -94,6 +136,34 @@ set(GPO_SOURCE_FILES include/stb/stb_image.h
 					 src/GPO_aux.cpp)
 add_executable(gpo_04_entrega ${GPO_SOURCE_FILES})
 target_link_libraries(gpo_04_entrega PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_04_entrega_ejer1.cpp
+					 src/GPO_aux.cpp)
+add_executable(GPO_04_entrega_ejer1 ${GPO_SOURCE_FILES})
+target_link_libraries(GPO_04_entrega_ejer1 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_04_entrega_ejer2.cpp
+					 src/GPO_aux.cpp)
+add_executable(GPO_04_entrega_ejer2 ${GPO_SOURCE_FILES})
+target_link_libraries(GPO_04_entrega_ejer2 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_04_entrega_ejer3.cpp
+					 src/GPO_aux.cpp)
+add_executable(GPO_04_entrega_ejer3 ${GPO_SOURCE_FILES})
+target_link_libraries(GPO_04_entrega_ejer3 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
+
+set(GPO_SOURCE_FILES include/stb/stb_image.h
+					 include/GpO.h
+					 src/GPO_04_entrega_ejer4.cpp
+					 src/GPO_aux.cpp)
+add_executable(GPO_04_entrega_ejer4 ${GPO_SOURCE_FILES})
+target_link_libraries(GPO_04_entrega_ejer4 PRIVATE ${OPENGL_LIBRARIES} glfw glm glad_interface)
 
 set(GPO_SOURCE_FILES include/stb/stb_image.h
 					 include/GpO.h
@@ -111,18 +181,39 @@ set_target_properties(gpo_01_index
 
 set_target_properties(gpo_02
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set_target_properties(gpo_02_entrega
+set_target_properties(gpo_02_entrega_ejer_1
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_02_entrega_ejer_2
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_02_entrega_ejer_3
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_02_entrega_ejer_4
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 set_target_properties(gpo_03
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set_target_properties(gpo_03_entrega
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_03_entrega_ejer1
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_03_entrega_ejer2
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(gpo_03_entrega_ejer3
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-set_target_properties(gpo_04
+  set_target_properties(gpo_04
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set_target_properties(gpo_04_entrega
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(GPO_04_entrega_ejer1
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(GPO_04_entrega_ejer2
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(GPO_04_entrega_ejer3
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(GPO_04_entrega_ejer4
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
 
 set_target_properties(gpo_proyecto_final
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

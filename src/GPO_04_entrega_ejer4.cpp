@@ -4,8 +4,8 @@ ATG, 2020
 
 #include <GpO.h>
 
-// TAMAÑO y TITULO INICIAL de la VENTANA
-int ANCHO = 800, ALTO = 600;  // Tamaño inicial ventana
+// TAMAï¿½O y TITULO INICIAL de la VENTANA
+int ANCHO = 800, ALTO = 600;  // Tamaï¿½o inicial ventana
 const char* prac = "OpenGL(GpO) Iluminacion";   // Nombre de la practica (aparecera en el titulo de la ventana).
 
 
@@ -16,36 +16,36 @@ const char* prac = "OpenGL(GpO) Iluminacion";   // Nombre de la practica (aparec
 #define GLSL(src) "#version 330 core\n" #src
 
 //  PROGRAMA 1 (Implementacion por vertices de iluminacion difusa con luz lejana)
-const char* vertex_prog1 = GLSL(
-layout(location = 0) in vec3 pos;
-layout(location = 1) in vec3 normal;
-out float ilu;
+/*const char* vertex_prog1 = GLSL(
+	layout(location = 0) in vec3 pos;
+	layout(location = 1) in vec3 normal;
+	out float ilu;
 
-uniform mat4 M;
-uniform mat4 PV;
-uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
+	uniform mat4 M;
+	uniform mat4 PV;
+	uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
 
-void main() {
-	gl_Position = PV*M*vec4(pos, 1);
+	void main() {
+		gl_Position = PV*M*vec4(pos, 1);
 
-	mat3 M_adj = mat3(transpose(inverse(M)));
-	vec3 n = M_adj * normal;
+		mat3 M_adj = mat3(transpose(inverse(M)));
+		vec3 n = M_adj * normal;
 
-	vec3 nn = normalize(n);
-	float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
-	ilu = (0.15 + 0.85*difusa);  //15% Ambiente + 85% difusa
-}
+		vec3 nn = normalize(n);
+		float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
+		ilu = (0.15 + 0.85*difusa);  //15% Ambiente + 85% difusa
+	}
 );
 
 const char* fragment_prog1 = GLSL(
-in float ilu;     // Entrada = iluminación de vertices (interpolados en fragmentos)
-out vec3 col;  // Color fragmento
-void main()
-{
-	col = vec3(1, 1, 0.9);
-	col = col*ilu;
-}
-);
+	in float ilu;     // Entrada = iluminaciï¿½n de vertices (interpolados en fragmentos)
+	out vec3 col;  // Color fragmento
+	void main()
+	{
+		col = vec3(1, 1, 0.9);
+		col = col*ilu;
+	}
+);*/
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -53,33 +53,40 @@ void main()
 //  PROGRAMA 2 (aqui implementaremos version en fragmentos)
 const char* vertex_prog2 = GLSL(       
 	layout(location = 0) in vec3 pos;
-layout(location = 1) in vec3 normal;
-out float ilu;
+	layout(location = 1) in vec2 uv;
+	out vec3 n;
+	out vec2 UV;
 
-uniform mat4 M;
-uniform mat4 PV;
-uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
+	uniform mat4 M;
+	uniform mat4 PV;
+	
+	void main() {
+		gl_Position = PV * M * vec4(pos, 1);
 
-void main() {
-	gl_Position = PV * M * vec4(pos, 1);
+		vec3 normal = normalize(pos);
 
-	mat3 M_adj = mat3(transpose(inverse(M)));
-	vec3 n = M_adj * normal;
+		mat3 M_adj = mat3(transpose(inverse(M)));
+		n = M_adj * normal;
 
-	vec3 nn = normalize(n);
-	float difusa = dot(luz, nn); if (difusa < 0) difusa = 0;
-	ilu = (0.15 + 0.85 * difusa);  //15% Ambiente + 85% difusa
-}
+		UV = uv;
+	}
 );
 
 const char* fragment_prog2 = GLSL(
-in float ilu;     // Entrada = iluminación de vertices (interpolados en fragmentos)
-out vec3 col;  // Color fragmento
-void main()
-{
-	col = vec3(1, 1, 1);
-	col = col*ilu;
-}
+	in vec3 n;     // Entrada = iluminaciï¿½n de vertices (interpolados en fragmentos)
+	in vec2 UV;
+	out vec3 col;  // Color fragmento
+	uniform vec3 luz = vec3(1, 1, 0) / sqrt(2.0f);
+	uniform sampler2D unit;
+	void main()
+	{
+		vec3 nn = normalize(n);
+		float difusa = sqrt(dot(luz, nn)); if (difusa < 0) difusa = 0;
+		float ilu = (0.05 + 0.95 * difusa);  //5% Ambiente + 95% difusa
+
+		col = texture(unit, UV).rgb;
+		col = col*ilu;
+	}
 );
 
 ////////////////////////////////  FIN PROGRAMAS GPU (SHADERS) //////////////////////////////////
@@ -104,22 +111,25 @@ void dibujar_indexado(objeto obj)
 
 // Variables globales
 mat4 Proy,View,M;
-vec3 campos=vec3(0.0f,1.0f,4.0f);											
-vec3 target=vec3(0.0f,0.9f,0.0f);
-vec3 up = vec3(0, 1, 0);
+vec3 campos=vec3(2.5f,0.0f,0.0f);											
+vec3 target=vec3(0.0f,0.0f,0.0f);
+vec3 up = vec3(0, 0, 2);
+float elev = 0.0f;
 
 
-// Compilación programas a ejecutar en la tarjeta gráfica:  vertex shader, fragment shaders
-// Preparación de los datos de los objetos a dibujar, envialarlos a la GPU
+// Compilaciï¿½n programas a ejecutar en la tarjeta grï¿½fica:  vertex shader, fragment shaders
+// Preparaciï¿½n de los datos de los objetos a dibujar, envialarlos a la GPU
 // Opciones generales de render de OpenGL
 void init_scene()
 {
-	prog[0] = Compile_Link_Shaders(vertex_prog1, fragment_prog1); // Compile shaders prog1
-	prog[1] = Compile_Link_Shaders(vertex_prog2, fragment_prog2); // Compile shaders prog2
+	GLuint tex0;
+	// prog[0] = Compile_Link_Shaders(vertex_prog1, fragment_prog1); // Compile shaders prog1
+	prog[0] = Compile_Link_Shaders(vertex_prog2, fragment_prog2); // Compile shaders prog2
 	
 	glUseProgram(prog[0]);
 
-	modelo=cargar_modelo("./data/esfera_520_n.bix");
+	modelo=cargar_modelo("./data/esfera_961.bix");
+	tex0 = cargar_textura("./data/planisferio.jpg", GL_TEXTURE0);
 
 	Proy = glm::perspective(glm::radians(55.0f), 4.0f / 3.0f, 0.1f, 100.0f); 
 	View = glm::lookAt(campos,target,up);
@@ -127,19 +137,33 @@ void init_scene()
 	glEnable(GL_CULL_FACE); glEnable(GL_DEPTH_TEST);
 }
 
+const float rotation = (90 * M_PIf64)/180;
+const float estacion = (23.5 * M_PIf64)/180;
 
-// Actualizar escena: cambiar posición objetos, nuevos objetros, posición cámara, luces, etc.
+
+
+//variables globales
+float az = 0, el = 0.0;
+// Actualizar escena: cambiar posiciï¿½n objetos, nuevos objetros, posiciï¿½n cï¿½mara, luces, etc.
 void render_scene()
 {
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	float tt = (float)glfwGetTime();  // Contador de tiempo en segundos 
+
+	campos = 2.5f * vec3(cos(elev),0, sin(elev));
+	View = glm::lookAt(campos,target,up);
+
+	az = 0.05 * tt; // Azimuth avanza a razÃ³n de 0.05 rads/s
 	
-	vec3 xy=vec3(cos(tt), 1.0f, sin(tt));
-	M = translate(xy)*rotate(50*tt, vec3(0.0f, 1.0f, 0.0f));   // Mov modelo 
+	vec3 luz = glm::vec3(cos(az), -sin(az), 0);
+
+	vec3 xy = vec3(0.0f, 0.0f, 0.0f);
 	
-	transfer_mat4("PV",Proy*View); transfer_mat4("M", M);
+	M = translate(xy) * (rotate(rotation*tt, vec3(0,-sin(estacion), cos(estacion))) * rotate(estacion, vec3(1.0f,0.0f,0.0f)));   // Mov modelo 
+	
+	transfer_mat4("PV",Proy*View); transfer_mat4("M", M); transfer_vec3("luz",luz);
 	dibujar_indexado(modelo);
 	
 }
@@ -152,7 +176,7 @@ int main(int argc, char* argv[])
 {
 	init_GLFW();            // Inicializa lib GLFW
 	window = Init_Window(prac);  // Crea ventana usando GLFW, asociada a un contexto OpenGL	X.Y
-	load_Opengl();         // Carga funciones de OpenGL, comprueba versión.
+	load_Opengl();         // Carga funciones de OpenGL, comprueba versiï¿½n.
 	init_scene();          // Prepara escena
 
 	while (!glfwWindowShouldClose(window))
@@ -193,7 +217,7 @@ void show_info()
 //////////////////////  INTERACCION  TECLADO RATON
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Callback de cambio tamaño
+// Callback de cambio tamaï¿½o
 void ResizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -201,11 +225,56 @@ void ResizeCallback(GLFWwindow* window, int width, int height)
 	ANCHO = width;
 }
 
+int actual = 0;
 static void KeyCallback(GLFWwindow* window, int key, int code, int action, int mode)
 {	
+	float tmp = M_PI / 2;
 	switch (key)
 	{
 	 case GLFW_KEY_ESCAPE:	glfwSetWindowShouldClose(window, true); break;	
+	 case GLFW_KEY_TAB:
+	 	if (action) {
+			if (actual) actual = 0; else actual = 1;
+			glUseProgram(prog[actual]);
+		}
+		break;
+	 case GLFW_KEY_UP:
+	 	if (action) {
+			if (el < tmp) {
+				el += 0.02;
+			}
+			elev += 0.1f;
+			if (elev>1.5f){
+				elev = 1.5f;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_DOWN:
+	 	if (action) {
+			if (-tmp < el) {
+				el -= 0.02;
+			}
+			elev -= 0.1f;
+			if (elev<-1.5f){
+				elev = -1.5f;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_RIGHT:
+	 	if (action) {
+			if (az < tmp) {
+				az += 0.02;
+			}
+		}
+	 	break;
+	 case GLFW_KEY_LEFT:
+	 	if (action) {
+			if (-tmp < az) {
+				az -= 0.02;
+			}
+		}
+	 	break;
+
 	}
 }
 

@@ -5,8 +5,8 @@ ATG, 2022
 
 #include <GpO.h>
 
-// TAMAï¿½O y TITULO INICIAL de la VENTANA
-int ANCHO = 800, ALTO = 600;  // Tamaï¿½o inicial ventana
+// TAMAÑO y TITULO INICIAL de la VENTANA
+int ANCHO = 800, ALTO = 600;  // Tamaño inicial ventana
 const char* prac = "OpenGL Texturas (GpO)";   // Nombre de la practica (aparecera en el titulo de la ventana).
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,36 +19,23 @@ const char* vertex_prog = GLSL(
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec2 uv;
 out vec2 UV;
-out float AZ;
 uniform mat4 MVP;
-uniform float az;
 void main(){
 	gl_Position = MVP*vec4(pos, 1);
 	UV = uv;
-	AZ = az;
 }
 );
 
 const char* fragment_prog = GLSL(
 in vec2 UV;
-in float AZ;
 out vec3 col;
 uniform sampler2D unit;
-//vec3 L = vec3(-2.0/3,-2.0/3,1.0/3);
-vec3 normal = vec3(0,0,1);
 void main()
-{	
-	vec3 L = vec3((2 * sqrt(2) * cos (AZ))/3,(2 * sqrt(2) * sin (AZ))/3,1.0/3);
-	vec3 text_col = texture(unit, UV).rgb;
-	vec3 dn = vec3((text_col.x - 0.5) * 2,(text_col.y - 0.5) * 2,(text_col.z - 0.5) * 2);
-	vec3 n = normalize(dn + normal);
-	float ilum = clamp(dot(n,L),0,1);
-	col.x = ilum;
-	col.y = ilum;
-	col.z = ilum;
+{
+	col= texture(unit, UV).rgb;
 }
 );
-//col= texture(unit, UV).rgb;
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////   RENDER CODE AND DATA
@@ -66,10 +53,10 @@ objeto crear_cuadrado(void)
 
 
 	static const GLfloat vertex_data[] = {   //  POsicion XYZ      (u,v)
-											-1.0f,  1.0f, 0.0f,   1,1,  // Vertice 0
-											 1.0f,  1.0f, 0.0f,   1,0,  // Vertice 1
-											 1.0f, -1.0f, 0.0f,   0,0,  // Vertice 2
-											-1.0f, -1.0f, 0.0f,   0,1}; // Vertice 3
+											-1.0f,  1.0f, 0.0f,   0.5,0.5,  // Vertice 0
+											 1.0f,  1.0f, 0.0f,   0.5,0.5,  // Vertice 1
+											 1.0f, -1.0f, 0.0f,   0.5,0.5,  // Vertice 2
+											-1.0f, -1.0f, 0.0f,   0.5,0.5}; // Vertice 3
 	
 
 	GLbyte indices[] = { 0, 3, 2, 0, 2, 1 };
@@ -87,10 +74,9 @@ objeto crear_cuadrado(void)
 	// Defino 1er argumento (atributo 0) del vertex shader (pos)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-	// Defino 2ï¿½ argumento (atributo 1) del vertex shader  (uv)
+	// Defino 2º argumento (atributo 1) del vertex shader  (uv)
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
 
@@ -118,18 +104,17 @@ void dibujar_indexado(objeto obj)
 	glBindVertexArray(0);  //Desactivamos VAO activo.
 }
 
+
 vec3 pos_obs = vec3(3.0f, 3.0f, 2.0f);
 vec3 target = vec3(0.0f, 0.0f, 0.0f);
 vec3 up = vec3(0, 0, 1);
 
 mat4 PP, VV; // matrices de proyeccion y perspectiva
 
-GLfloat az = 0.0f;
-
-// Preparaciï¿½n de los datos de los objetos a dibujar, envialarlos a la GPU
-// Compilaciï¿½n programas a ejecutar en la tarjeta grï¿½fica:  vertex shader, fragment shaders
+// Preparación de los datos de los objetos a dibujar, envialarlos a la GPU
+// Compilación programas a ejecutar en la tarjeta gráfica:  vertex shader, fragment shaders
 // Opciones generales de render de OpenGL
-// Creaciï¿½n de matrices de perspectiva y punto de vista.
+// Creación de matrices de perspectiva y punto de vista.
 void init_scene()
 {
 	GLuint tex0;
@@ -139,19 +124,18 @@ void init_scene()
 
 	obj = crear_cuadrado();  // Datos del objeto, mandar a GPU
 
-	PP = perspective(glm::radians(25.0f), 4.0f / 3.0f, 0.1f, 20.0f);  //40ï¿½ Y-FOV,  4:3 ,  Znear=0.1, Zfar=20
+	PP = perspective(glm::radians(25.0f), 4.0f / 3.0f, 0.1f, 20.0f);  //40º Y-FOV,  4:3 ,  Znear=0.1, Zfar=20
+	VV = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
 
 	// Carga imagen (en el directorio /data/ al mismo nivel que /Debug),
 	// la guarda en el objeto tex0 y lo asocia al texture slot 0 (GL_TEXTURE0)
-	tex0 = cargar_textura("data/imagen.bmp", GL_TEXTURE0);
-
-	
+	tex0 = cargar_textura("./data/foto0.jpg", GL_TEXTURE0);
 
 	glEnable(GL_CULL_FACE);
 }
 
 
-// Actualizar escena: cambiar posiciï¿½n objetos, nuevos objetros, posiciï¿½n cï¿½mara, luces, etc.
+// Actualizar escena: cambiar posición objetos, nuevos objetros, posición cámara, luces, etc.
 void render_scene()
 {
 	glClearColor(0.0f,0.6f,0.0f,1.0f);  // Especifica color para el fondo (RGB+alfa)
@@ -160,14 +144,11 @@ void render_scene()
 
 	float t = (float)glfwGetTime();  // Contador de tiempo en segundos 
 
-	VV = lookAt(pos_obs, target, up);  // Pos camara, Lookat, head up
-
-	///////// Aqui vendrï¿½a nuestr cï¿½digo para actualizar escena  /////////	
+	///////// Aqui vendría nuestr código para actualizar escena  /////////	
 	mat4 M, T, R, S;
 	M = mat4(1.0f);
 
 	transfer_mat4("MVP", PP*VV*M); 
-	transfer_float("az", az);
 	dibujar_indexado(obj);
 }
 
@@ -180,7 +161,7 @@ int main(int argc, char* argv[])
 {		
 	init_GLFW();            // Inicializa lib GLFW
 	window = Init_Window(prac);  // Crea ventana usando GLFW, asociada a un contexto OpenGL	X.Y
-	load_Opengl();         // Carga funciones de OpenGL, comprueba versiï¿½n.
+	load_Opengl();         // Carga funciones de OpenGL, comprueba versión.
 	init_scene();          // Prepara escena
 
 	while (!glfwWindowShouldClose(window))
@@ -222,7 +203,7 @@ void show_info()
 //////////////////////  ASIGNACON FUNCIONES CALLBACK
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Callback de cambio tamaï¿½o
+// Callback de cambio tamaño
 void ResizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -236,20 +217,6 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 	switch (key)
 	{
 	  case GLFW_KEY_ESCAPE:	glfwSetWindowShouldClose(window, true); break;
-	  case GLFW_KEY_RIGHT: az += 0.1f; break;
-	  case GLFW_KEY_LEFT: az -= 0.1f; break;
-	  case GLFW_KEY_UP: 
-	  	if (pos_obs.z <10){
-			pos_obs.z += 0.1;
-			printf("Nueva pos: %f\n",pos_obs.z);
-		}
-		break;
-		case GLFW_KEY_DOWN: 
-	  	if (pos_obs.z > 0.4){
-			pos_obs.z -= 0.1;
-			printf("Nueva pos: %f\n",pos_obs.z);
-		}
-		break;
 	}
 
 }
