@@ -6,7 +6,7 @@ ATG, 2019
 
 #define MALLA_AGUA 0
 #define MALLA_TERRENO 1
-#define WATER_HEIGHT 0.33
+#define WATER_HEIGHT 0.3
 
 // TAMA�O y TITULO INICIAL de la VENTANA
 int ANCHO = 800, ALTO = 600;  // Tama�o inicial ventana
@@ -21,109 +21,15 @@ const char* prac = "Mallas en OpenGL(GpO)";   // Nombre de la practica (aparecer
 
 // -------------------------SHADER TERRENO-------------------------------
 
-const char* vertex_prog_terreno_ilu = GLSL(
-	layout(location = 0) in vec3 pos;
-	layout(location = 1) in vec3 normal;
-	out vec3 n;
-    out vec3 v;
-	out float h;
-
-	uniform mat4 M;
-	uniform mat4 VP;
-	uniform vec3 pos_obs;
-
-	float t;
-	void main()
-	{
-		gl_Position = VP*M*vec4(pos,1); // Coord homog�neas y aplicacion matriz transformacion MVP
-		
-		h = pos.z;
-		mat3 M_adj = mat3(transpose(inverse(M)));
-		n = M_adj * normal;
-        v = normalize(pos_obs - vec3(M * vec4(pos,1)));
-	}
-);
-
-const char* fragment_prog_terreno_ilu = GLSL(
-	in float h;
-	in vec3 n;
-    in vec3 v;
-	uniform vec3 luz;
-	uniform vec4 components;
-
-
-	void main() 
-	{	
-		vec3 color1;
-		vec3 color2;
-		vec3 result;
-		float min_height;
-		float max_height;
-
-		// degradado de colores según la altura del fragmento
-		if (h < 0 || (h >= 0 && h < 0.3)) {
-			color1 = vec3(0.52,0.44,0.36);
-			color2 = vec3(0.76,0.69,0.49);
-			min_height = 0;
-			max_height = 0.3;
-		} else if (h >= 0.3 && h < 0.35) {
-			color1= vec3(0.76,0.69,0.49);
-			color2 = vec3(0.74,0.78,0.29);
-			min_height = 0.3;
-			max_height = 0.35;
-		} else if (h >= 0.35 && h < 0.6) {
-			color1 = vec3(0.49,0.70,0.18);
-			color2 = vec3(0.36,0.46,0.22);
-			min_height = 0.35;
-			max_height = 0.6;
-		}  else if (h >= 0.6 && h < 0.8) {
-			color1 = vec3(0.36,0.46,0.22);
-			color2 = vec3(0.40,0.45,0.30);
-			min_height = 0.6;
-			max_height = 0.8;
-		} else {
-			color1 = vec3(0.40,0.45,0.30);
-			color2 = vec3(0.75,0.76,0.72);
-			min_height = 0.8;
-			max_height = 1;
-		}
-		
-		// hay que normalizar la altura segun el intervalo en el que se encuentre.
-		// de este modo si la altura normalizada es 0, cogerá el color1
-		// si es 1, cogerá el color 2
-		// y si no, una interpolación entre ambos colores según su altura
-		float norm_height = (h - min_height) / (max_height - min_height);
-		result = mix(color1, color2, norm_height);
-
-		// iluminación
-		vec3 nn = normalize(n);
-        vec3 r = reflect(-luz,nn);
-
-		float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
-        float especular = dot(r,v); if (especular < 0) especular = 0; especular = pow(especular,components[3]);
-		float ilu = (components[0] + components[1]*difusa + components[2] * especular);
-	
-		gl_FragColor = vec4(result*ilu,1); 
-	}
-);
-
-// -------------------------SHADER TERRENO SIN ILUMINACION -------------------------------
-
 const char* vertex_prog_terreno = GLSL(
 	layout(location = 0) in vec3 pos;
-	layout(location = 1) in vec3 normal;
-	out vec3 n;
-    out vec3 v;
 	out float h;
-
-	uniform mat4 M;
-	uniform mat4 VP;
-
+	uniform mat4 MVP=mat4(1.0f);
 	float t;
 	void main()
 	{
 		h = pos.z;
-		gl_Position = VP*M*vec4(pos,1); // Coord homog�neas y aplicacion matriz transformacion MVP
+		gl_Position = MVP*vec4(pos,1); // Coord homog�neas y aplicacion matriz transformacion MVP
 	}
 );
 
@@ -131,95 +37,72 @@ const char* fragment_prog_terreno = GLSL(
 	in float h;
 	void main() 
 	{	
-		vec3 color1;
-		vec3 color2;
-		vec3 result;
-		float min_height;
-		float max_height;
-
-		// degradado de colores según la altura del fragmento
-		if (h < 0 || (h >= 0 && h < 0.3)) {
-			color1 = vec3(0.52,0.44,0.36);
-			color2 = vec3(0.76,0.69,0.49);
-			min_height = 0;
-			max_height = 0.3;
-		} else if (h >= 0.3 && h < 0.35) {
-			color1= vec3(0.76,0.69,0.49);
-			color2 = vec3(0.74,0.78,0.29);
-			min_height = 0.3;
-			max_height = 0.35;
-		} else if (h >= 0.35 && h < 0.6) {
-			color1 = vec3(0.49,0.70,0.18);
-			color2 = vec3(0.36,0.46,0.22);
-			min_height = 0.35;
-			max_height = 0.6;
-		}  else if (h >= 0.6 && h < 0.8) {
-			color1 = vec3(0.36,0.46,0.22);
-			color2 = vec3(0.40,0.45,0.30);
-			min_height = 0.6;
-			max_height = 0.8;
+		vec3 color;
+		if (h < 0) {
+			color = vec3(0.52,0.44,0.36);
+		} else if (h >= 0 && h < 0.1) {
+			color = vec3(0.52,0.44,0.36);
+		} else if (h >= 0.1 && h < 0.2) {
+			color = vec3(0.76,0.69,0.49);
+		} else if (h >= 0.2 && h < 0.34) {
+			color = vec3(0.86,0.76,0.46);
+		} else if (h >= 0.34 && h < 0.4) {
+			color = vec3(0.74,0.78,0.29);
+		} else if (h >= 0.4 && h < 0.5) {
+			color = vec3(0.49,0.70,0.18);
+		} else if (h >= 0.5 && h < 0.7) {
+			color = vec3(0.36,0.46,0.22);
+		} else if (h >= 0.7 && h < 0.8) {
+			color = vec3(0.41,0.45,0.34);
 		} else {
-			color1 = vec3(0.40,0.45,0.30);
-			color2 = vec3(0.75,0.76,0.72);
-			min_height = 0.8;
-			max_height = 1;
+			color = vec3(0.75,0.76,0.72);
 		}
-		
-		// hay que normalizar la altura segun el intervalo en el que se encuentre.
-		// de este modo si la altura normalizada es 0, cogerá el color1
-		// si es 1, cogerá el color 2
-		// y si no, una interpolación entre ambos colores según su altura
-		float norm_height = (h - min_height) / (max_height - min_height);
-		result = mix(color1, color2, norm_height);
-
-		gl_FragColor = vec4(result,1); 
+		gl_FragColor = vec4(color,1); 
 	}
 );
-
 
 // -------------------------SHADER AGUA-------------------------------
 
 const char* vertex_prog_agua = GLSL(
 	layout(location = 0) in vec3 pos;
-	layout(location = 1) in vec3 normal;
-	out vec3 n;
-    out vec3 v;
 
-	uniform mat4 M;
-	uniform mat4 VP;
+	uniform mat4 MVP;
 	uniform float time;
-	uniform vec3 pos_obs;
 
 	void main()
 	{
-		// movemos los vertices para que parezca que hay marea
-		vec3 newPosition = pos + vec3(0.0, 0.0, sin(time * 0.5 + pos.x * 1.0) * cos(time * 1.0 + pos.y * 1.0)*0.05);
-		gl_Position = VP*M*vec4(newPosition,1); // Coord homog�neas y aplicacion matriz transformacion MVP
-		mat3 M_adj = mat3(transpose(inverse(M)));
-		n = M_adj * normal;
-        v = normalize(pos_obs - vec3(M * vec4(pos,1)));
+		// movemos los fragmentos para que parezca que hay marea
+		vec3 newPosition = pos + vec3(0.0, 0.0, sin(time * 0.5 + pos.x * 1.0) * cos(time * 1.0 + pos.y * 1.0)*0.035);
+		gl_Position = MVP*vec4(newPosition,1); // Coord homog�neas y aplicacion matriz transformacion MVP
 	}
 );
 
 const char* fragment_prog_agua = GLSL(
-	in vec3 n;
-    in vec3 v;
-	uniform vec3 luz;
-	uniform vec4 components;
 
 	void main() 
 	{	
 		vec3 color = vec3(0,0.9,0.8);
+		gl_FragColor = vec4(color,0.6); 
+	}
+);
 
-		// iluminación
-		vec3 nn = normalize(n);
-        vec3 r = reflect(-luz,nn);
+//---------------- SHADER DEL CURSOR ---------------------//
+const char* vertex_prog_cursor = GLSL(
+	layout(location = 0) in vec3 pos;
+	layout(location = 1) in vec2 uv;
+	uniform mat4 MVP;
+	void main(){
+		gl_Position = MVP*vec4(pos, 1);
+	}
+);
 
-		float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
-        float especular = dot(r,v); if (especular < 0) especular = 0; especular = pow(especular,components[3]);
-		float ilu = (components[0] + components[1]*difusa + components[2] * especular); 
-	
-		gl_FragColor = vec4(color*ilu,0.6); 
+const char* fragment_prog_cursor = GLSL(
+
+	out vec3 col;
+	void main()
+	{
+		vec3 color = vec3(1,0.0,0.0);
+		gl_FragColor = vec4(color,0.6); 
 	}
 );
 
@@ -230,11 +113,11 @@ const char* fragment_prog_agua = GLSL(
 
 GLFWwindow* window;
 GLuint prog_terreno;
-GLuint prog_terreno_sin_ilu;
-GLuint prog_actual_terreno;
 GLuint prog_agua;
+GLuint prog_cursor;
 objeto malla_terreno;
 objeto malla_agua;
+objeto cursor;
 GLuint buffer;
 
 #define N 513
@@ -244,6 +127,7 @@ vec3 vert[N][M];
 vec3 vert_norm[N][M];
 GLuint indexes[N-1][2*M+1];
 float alturas[N][M];
+bool alturas_inicializadas = false;
 
 float coordenada_z(int x, int y) {
 	return alturas[x][y];
@@ -254,7 +138,6 @@ objeto crear_malla(int tipoMalla)
 	objeto obj;
 	GLuint VAO;
 	GLuint i_buffer;
-	GLuint n_buffer;
 
 	unsigned int i, j;
 
@@ -262,11 +145,15 @@ objeto crear_malla(int tipoMalla)
 	FILE* fid;
 	fopen_s(&fid, "./data/perlin.dat", "rb");
 	if(fid != NULL) {
-		unsigned int count = fread((void *) alturas, sizeof(float), N*M, fid);
-		fclose(fid);
+		if (!alturas_inicializadas){
+			unsigned int count = fread((void *) alturas, sizeof(float), N*M, fid);
+			alturas_inicializadas = true;
+			fclose(fid);
+		}
 	} else {
 		printf("No existe el fichero perlin.dat\n");
 	}
+
 
 	// RELLENAR POSICIONES (x,y,z) de los v�rtices de la malla
 	for (i = 0; i < N; i++) {
@@ -275,10 +162,8 @@ objeto crear_malla(int tipoMalla)
 			vert[i][j].y = 2 * (float)i / (N-1) - 1.0;
 			if (tipoMalla == MALLA_TERRENO)
 				vert[i][j].z = coordenada_z(i, j);
-			if (tipoMalla == MALLA_AGUA){
+			if (tipoMalla == MALLA_AGUA)
 				vert[i][j].z = 0.3;
-				vert_norm[i][j] = vec3(0,0,1); // la normal del agua siempre es la misma
-			}
 		}
 	}
 	
@@ -300,55 +185,10 @@ objeto crear_malla(int tipoMalla)
 		indexes[i][2*M] = 0xffffffff;
 	}
 
-	// calculamos normales del terreno
-	for (i = 0; i < N-1 && tipoMalla == MALLA_TERRENO; i++) {
-		for (j = 0; j < 2*M-1; j+=2) {
-
-			int vert1 = indexes[i][j];
-			int vert2 = indexes[i][j+1];
-			int vert3 = indexes[i][j+2];
-			int vert4 = indexes[i][j+3];
-
-			// las posiciones de los 4 vértices que vamos a tomar
-			vec3 pos1 = vert[i][vert1%M];
-			vec3 pos2 = vert[i+1][vert2%M];
-			vec3 pos3 = vert[i][vert3%M];
-			vec3 pos4 = vert[i+1][vert4%M];
-
-			// normal del triangulo formado por 1 - 3 - 2
-			vec3 normal1 = pos3 - pos1;
-			vec3 normal2 = pos2 - pos1;
-			vec3 faceNormal = glm::cross(normal1, normal2);
-			// sumamos normal a lo que ya hay en ese vértice
-			vert_norm[i][vert1%M] += faceNormal;
-			vert_norm[i+1][vert2%M] += faceNormal;
-			vert_norm[i][vert3%M] += faceNormal;
-
-			// normal del triangulo formado por 4 - 2 - 3
-			normal1 = pos4 - pos2;
-			normal2 = pos4 - pos3;
-			faceNormal = glm::cross(normal1, normal2);
-			// sumamos normal a lo que ya hay en ese vértice
-			vert_norm[i+1][vert2%M] += faceNormal;
-			vert_norm[i][vert3%M] += faceNormal;
-			vert_norm[i+1][vert4%M] += faceNormal;
-		
-		}
-	}
-
-	// normalizamos las normales
-	for (i = 0; i < N; i++) {
-		for (j = 0; j < M; j++) {
-			vert_norm[i][j] = normalize(vert_norm[i][j]);
-			//printf("	n1 %f %f %f\n", vert_norm[i][j].x, vert_norm[i][j].y, vert_norm[i][j].z);
-		}
-	}
-
-	// Transferencia de posiciones, normales e indices a la GPU
+	// Transferencia de posiciones e indices a la GPU
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	// TRANSFERENCIA DE VERTICES
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vert), vert, GL_STATIC_DRAW);
@@ -359,17 +199,7 @@ objeto crear_malla(int tipoMalla)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
 
-	// TRANSFERENCIA DE NORMALES
-	glGenBuffers(1, &n_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, n_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vert_norm), vert_norm, GL_STATIC_DRAW);
-	printf("Transferidas las normales\n");
-	// Especifico como encontrar 2o argumento (atributo 1) del vertex shader
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);	
-	glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
 
-	// TRANSFERENCIA DE INDICES
 	glGenBuffers(1, &i_buffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
@@ -396,14 +226,14 @@ void dibujar_strip(objeto obj)
 
 void init_scene()  
 {
-  prog_terreno_sin_ilu = Compile_Link_Shaders(vertex_prog_terreno, fragment_prog_terreno);
-  prog_terreno = Compile_Link_Shaders(vertex_prog_terreno_ilu, fragment_prog_terreno_ilu);
+  prog_terreno = Compile_Link_Shaders(vertex_prog_terreno, fragment_prog_terreno);
   prog_agua = Compile_Link_Shaders(vertex_prog_agua, fragment_prog_agua);
+  prog_cursor = Compile_Link_Shaders(vertex_prog_cursor, fragment_prog_cursor);
   glUseProgram(prog_terreno);    // Indicamos que programa vamos a usar 
-  prog_actual_terreno = prog_terreno;
 
   malla_terreno = crear_malla(MALLA_TERRENO);  // Datos del objeto, mandar a GPU
   malla_agua = crear_malla(MALLA_AGUA);
+  cursor = cargar_modelo("./data/esfera_256.bix");
 
   glEnable(GL_CULL_FACE); glFrontFace(GL_CW);
   glEnable(GL_PRIMITIVE_RESTART);
@@ -424,18 +254,15 @@ float t = 0.0f; //tiempo que pasa
 float d=8.0f, az = -0.58f, el = 0.5f;
 float t1 = 0.0f, t2 = 0.0f, t3 = 0.5f;
 
-float zfar = 40.0f;
+float zfar = 20.0f;
 float znear = 1.0f;
 
 vec3 pos_obs;
 vec3 target = vec3(t1,t2,t3);
 vec3 up= vec3(0,0,1);
 
-// PARÁMETROS DE ILUMINACIÓN
-vec3 luz = vec3(2.5, 2, 1.5) / sqrt(2.0f);
-// Components (ambiental, difusa, especular, exponente)
-vec4 components_terreno = vec4(0.1,0.7,0,5);
-vec4 components_agua = vec4(0,0.5,1,5);
+// Almacena la posicion del puntero
+vec3 pointerPosition = vec3(0.0f,0.0f,0.5f);
 
 mat4 VV, PP, Model, Matriz, mvp, T, R, S; 
 
@@ -446,7 +273,7 @@ void render_scene()
 {
 	float tt = (float)glfwGetTime();  // Contador de tiempo en segundos 
 
-	glClearColor(0.0f, 0.5f, 0.5f, 0.75f);  // Especifica color (RGB+alfa)	
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Especifica color (RGB+alfa)	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// actualiza posicion observador
@@ -463,39 +290,36 @@ void render_scene()
 	// Rotacion
 	R = rotate(glm::radians(tmp), vec3(0.0f, 0.0f, 1.0f));
 	// Escalado
-	S = scale(vec3(4,4,1));
+	S = scale(vec3(2,2.5,1));
 	// Matriz de modelado
-	Model = T*R*S;
+	Model = R*T*S;
 
 	VV = lookAt(pos_obs, target, up);
 	PP = perspective(glm::radians(28.0f), 4.0f / 3.0f, znear, zfar);
-
-	// RENDER TERRENO
-	glUseProgram(prog_actual_terreno);    // Indicamos que programa vamos a usar 
-	transfer_mat4("VP", PP*VV);
-	transfer_mat4("M", Model);
-	if (prog_actual_terreno != prog_terreno_sin_ilu){
-		transfer_vec3("pos_obs",pos_obs);
-		transfer_vec3("luz", luz);
-		transfer_vec4("components", components_terreno);
-	}
+	glUseProgram(prog_terreno);    // Indicamos que programa vamos a usar 
+	transfer_mat4("MVP", PP*VV*Model);
 	glBindVertexArray(malla_terreno.VAO);  // Activamos VAO asociado al objeto
 	glDrawElements(GL_TRIANGLE_STRIP, malla_terreno.Ni, malla_terreno.tipo_indice, (void*)0);  // Dibujar (indexado)
 	glBindVertexArray(0);
 
-	// RENDER AGUA
 	glUseProgram(prog_agua);    // Cambiamos programa del shader
 	transfer_float("time", tt);
-	transfer_mat4("VP", PP*VV);
-	transfer_mat4("M", Model);
-	transfer_vec3("pos_obs",pos_obs);
-	transfer_vec3("luz", luz);
-	transfer_vec4("components", components_agua);
+	transfer_mat4("MVP", PP*VV*Model);
+
 	glBindVertexArray(malla_agua.VAO); // Activamos VAO asociado al objeto
 	glDrawElements(GL_TRIANGLE_STRIP, malla_agua.Ni, malla_agua.tipo_indice, (void*)0);  // Dibujar (indexado)
 	glBindVertexArray(0);
 
-	glUseProgram(0);
+
+	// Pintamos el cursor
+	glUseProgram(prog_cursor);
+	T = glm::translate(pointerPosition);
+	S = scale(vec3(0.1,0.1,0.1));
+	Model = T * S;
+	transfer_mat4("MVP",PP*VV*Model);
+	glBindVertexArray(cursor.VAO);
+	glDrawElements(GL_TRIANGLES, cursor.Ni, cursor.tipo_indice, (void*)0);  // Dibujar (indexado)
+	glBindVertexArray(0);  //Desactivamos VAO activo.
 
 	////////////////////////////////////////////////////////
 
@@ -543,6 +367,34 @@ void show_info()
 
 }
 
+bool calcular_posiciones_mapa_altura(float x, float y, int* result){
+	printf("Posiciones a comprobar: %f, %f\n",x,y);
+	float best = 1.0f;
+	for(int i = 0; i < M; i++){
+		for (int j = 0; j < N; j++){
+			vec3 item = vert[i][j];
+			float distance = sqrt(pow(item.x - x,2) + pow(item.y - y,2));
+			if (distance < best){
+				result[0] = i;
+				result[1] = j;
+				best = distance;
+			}
+			/*if (distance < 0.01){
+				printf("Posiciones de resultado: %f, %f\n",item.x,item.y);
+				result[0] = i;
+				result[1] = j;
+				return true;
+			}*/
+		}
+	}
+	vec3 item = vert[result[0]][result[1]];
+	printf("Posiciones obtenidas: %f, %f\n",item.x, item.y);
+	return best < 0.1f;
+
+
+}
+
+const float increment = 0.1f;
 int flag_malla = 0;
 static void KeyCallback(GLFWwindow* window, int key, int code, int action, int mode)
 {
@@ -551,7 +403,7 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 	switch (key)
 	{
 	case GLFW_KEY_ESCAPE:	glfwSetWindowShouldClose(window, true); break;	
-	case GLFW_KEY_ENTER: 
+	case GLFW_KEY_ENTER:
 		if (action == GLFW_PRESS) {
 			if (cont == 0) {
 				tmp2 = 20.0f; 
@@ -561,30 +413,48 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 				cont = 0;
 			}
 		} break;
+	case GLFW_KEY_SPACE: 
+		if (action != GLFW_PRESS){
+			return;
+		}
+		pointerPosition[2] += increment;
+		if (pointerPosition[2] > 10.0f){
+			pointerPosition[2] = 10.0f;
+		}
+		break;
+	case GLFW_KEY_LEFT_CONTROL:
+		if (action != GLFW_PRESS){
+			return;
+		}
+		pointerPosition[2] -= increment;
+		if (pointerPosition[2] < 0.0f){
+			pointerPosition[2] = 0.0f;
+		}
+		break;
 	
 	case GLFW_KEY_UP:
-	 	if (action) {
+	 	if (action == GLFW_PRESS) {
 			if (el < var) {
 				el += 0.02;
 			}
 		}
 	 	break;
 	 case GLFW_KEY_DOWN:
-	 	if (action) {
+	 	if (action == GLFW_PRESS) {
 			if (-var <= el) {
 				el -= 0.02;
 			}
 		}
 	 	break;
 	 case GLFW_KEY_LEFT:
-	 	if (action) {
+	 	if (action == GLFW_PRESS) {
 			if (az < var) {
 				az += 0.02;
 			}
 		}
 	 	break;
 	 case GLFW_KEY_RIGHT:
-	 	if (action) {
+	 	if (action == GLFW_PRESS) {
 			if (-var <= az) {
 				az -= 0.02;
 			}
@@ -600,10 +470,39 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 				flag_malla = 0;
 			}
 		}break;
-	 case GLFW_KEY_K:
+	 case GLFW_KEY_D:
 	 	if (action == GLFW_PRESS) {
-			if (t1 < 1.5f) {
-				t1 += 0.1f;
+			pointerPosition[1] += increment;
+			if (pointerPosition[1] > 10.0f){
+				pointerPosition[1] = 10.0f;
+			}
+		} break;
+	 case GLFW_KEY_A:
+	 	if (action == GLFW_PRESS) {
+			pointerPosition[1] -= increment;
+			if (pointerPosition[1] < -10.0f){
+				pointerPosition[1] = -10.0f;
+			}
+		} break;
+	 case GLFW_KEY_W:
+	 	if (action == GLFW_PRESS) {
+			pointerPosition[0] += increment;
+			if (pointerPosition[0] > 10.0f){
+				pointerPosition[0] = 10.0f;
+			}
+		} break;
+	 case GLFW_KEY_S:
+	 	if (action == GLFW_PRESS) {
+			pointerPosition[0] -= increment;
+			if (pointerPosition[0] < -10.0f){
+				pointerPosition[0] = -10.0f;
+			}
+		} break;
+
+	 case GLFW_KEY_U:
+	 	if (action == GLFW_PRESS) {
+			if (-2.5f <= t3) {
+				t3 -= 0.1f;
 			}
 		} break;
 	 case GLFW_KEY_H:
@@ -612,26 +511,73 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 				t1 -= 0.1f;
 			}
 		} break;
-	 case GLFW_KEY_U:
-	 	if (action == GLFW_PRESS) {
-			if (-2.5f <= t3) {
-				t3 -= 0.1f;
-			}
-		} break;
 	 case GLFW_KEY_J:
 	 	if (action == GLFW_PRESS) {
 			if (t3 < 2.5f) {
 				t3 += 0.1f;
 			}
 		} break;
-
-	 case GLFW_KEY_L:
+	 case GLFW_KEY_K:
 	 	if (action == GLFW_PRESS) {
-		  prog_actual_terreno = (prog_actual_terreno == prog_terreno_sin_ilu)? prog_terreno: prog_terreno_sin_ilu;
+			if (t1 < 1.5f) {
+				t1 += 0.1f;
+			}
+		} break;
+
+	 case GLFW_KEY_T:
+	 	if (action == GLFW_PRESS) {
+			int posiciones[2];
+			float x = pointerPosition[0];
+			float y = pointerPosition[1];
+			if (calcular_posiciones_mapa_altura(x,y, posiciones)){
+				for (int i = -20; i <= 20; i++){
+					int xAdapted = posiciones[0] + i;
+					if (xAdapted < 0 || xAdapted >= M){
+						continue;
+					}
+					for (int j = -20; j <= 20; j++){
+						int yAdapted = posiciones[1] + j;
+						if (yAdapted < 0 || yAdapted >= N){
+							continue;
+						}
+						float adjustFactor = (abs(j) + abs(i))/40.0f + 1.0f;
+						alturas[xAdapted][yAdapted] += 0.1f/adjustFactor;
+					}
+				}
+				//alturas[posiciones[0]][posiciones[1]] += 1.0f;
+				printf("Valor de altura: %f\n", alturas[posiciones[0]][posiciones[1]]);
+				malla_terreno = crear_malla(MALLA_TERRENO);  // Datos del objeto, mandar a GPU
+			}
+		} break;
+	  case GLFW_KEY_V:
+	  	if (action == GLFW_PRESS) {
+			int posiciones[2];
+			float x = pointerPosition[0];
+			float y = pointerPosition[1];
+			if (calcular_posiciones_mapa_altura(x,y, posiciones)){
+				for (int i = -20; i <= 20; i++){
+					int xAdapted = posiciones[0] + i;
+					if (xAdapted < 0 || xAdapted >= M){
+						continue;
+					}
+					for (int j = -20; j <= 20; j++){
+						int yAdapted = posiciones[1] + j;
+						if (yAdapted < 0 || yAdapted >= N){
+							continue;
+						}
+						float adjustFactor = (abs(j) + abs(i))/40.0f + 1.0f;
+						alturas[xAdapted][yAdapted] -= 0.1f/adjustFactor;
+					}
+				}
+				//alturas[posiciones[0]][posiciones[1]] += 1.0f;
+				printf("Valor de altura: %f\n", alturas[posiciones[0]][posiciones[1]]);
+				malla_terreno = crear_malla(MALLA_TERRENO);  // Datos del objeto, mandar a GPU
+			}
 		} break;
 	}
 
 }
+
 
 // Callback de cambio tama�o de ventana
 void ResizeCallback(GLFWwindow* window, int width, int height)

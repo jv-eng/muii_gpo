@@ -6,7 +6,7 @@ ATG, 2019
 
 #define MALLA_AGUA 0
 #define MALLA_TERRENO 1
-#define WATER_HEIGHT 0.33
+#define WATER_HEIGHT 0.3
 
 // TAMA�O y TITULO INICIAL de la VENTANA
 int ANCHO = 800, ALTO = 600;  // Tama�o inicial ventana
@@ -61,21 +61,21 @@ const char* fragment_prog_terreno_ilu = GLSL(
 		float max_height;
 
 		// degradado de colores según la altura del fragmento
-		if (h < 0 || (h >= 0 && h < 0.3)) {
+		if (h < 0 || (h >= 0 && h < 0.2)) {
 			color1 = vec3(0.52,0.44,0.36);
 			color2 = vec3(0.76,0.69,0.49);
 			min_height = 0;
-			max_height = 0.3;
-		} else if (h >= 0.3 && h < 0.35) {
-			color1= vec3(0.76,0.69,0.49);
+			max_height = 0.2;
+		} else if (h >= 0.2 && h < 0.4) {
+			color1 = vec3(0.86,0.76,0.46);
 			color2 = vec3(0.74,0.78,0.29);
-			min_height = 0.3;
-			max_height = 0.35;
-		} else if (h >= 0.35 && h < 0.6) {
+			min_height = 0.2;
+			max_height = 0.4;
+		} else if (h >= 0.4 && h < 0.6) {
 			color1 = vec3(0.49,0.70,0.18);
 			color2 = vec3(0.36,0.46,0.22);
-			min_height = 0.35;
-			max_height = 0.6;
+			min_height = 0.4;
+			max_height = 0.7;
 		}  else if (h >= 0.6 && h < 0.8) {
 			color1 = vec3(0.36,0.46,0.22);
 			color2 = vec3(0.40,0.45,0.30);
@@ -101,81 +101,11 @@ const char* fragment_prog_terreno_ilu = GLSL(
 
 		float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
         float especular = dot(r,v); if (especular < 0) especular = 0; especular = pow(especular,components[3]);
-		float ilu = (components[0] + components[1]*difusa + components[2] * especular);
+		float ilu = (components[0] + components[1]*difusa + components[2] * especular);  //10% Ambiente + 60% difusa + 30% especular
 	
 		gl_FragColor = vec4(result*ilu,1); 
 	}
 );
-
-// -------------------------SHADER TERRENO SIN ILUMINACION -------------------------------
-
-const char* vertex_prog_terreno = GLSL(
-	layout(location = 0) in vec3 pos;
-	layout(location = 1) in vec3 normal;
-	out vec3 n;
-    out vec3 v;
-	out float h;
-
-	uniform mat4 M;
-	uniform mat4 VP;
-
-	float t;
-	void main()
-	{
-		h = pos.z;
-		gl_Position = VP*M*vec4(pos,1); // Coord homog�neas y aplicacion matriz transformacion MVP
-	}
-);
-
-const char* fragment_prog_terreno = GLSL(
-	in float h;
-	void main() 
-	{	
-		vec3 color1;
-		vec3 color2;
-		vec3 result;
-		float min_height;
-		float max_height;
-
-		// degradado de colores según la altura del fragmento
-		if (h < 0 || (h >= 0 && h < 0.3)) {
-			color1 = vec3(0.52,0.44,0.36);
-			color2 = vec3(0.76,0.69,0.49);
-			min_height = 0;
-			max_height = 0.3;
-		} else if (h >= 0.3 && h < 0.35) {
-			color1= vec3(0.76,0.69,0.49);
-			color2 = vec3(0.74,0.78,0.29);
-			min_height = 0.3;
-			max_height = 0.35;
-		} else if (h >= 0.35 && h < 0.6) {
-			color1 = vec3(0.49,0.70,0.18);
-			color2 = vec3(0.36,0.46,0.22);
-			min_height = 0.35;
-			max_height = 0.6;
-		}  else if (h >= 0.6 && h < 0.8) {
-			color1 = vec3(0.36,0.46,0.22);
-			color2 = vec3(0.40,0.45,0.30);
-			min_height = 0.6;
-			max_height = 0.8;
-		} else {
-			color1 = vec3(0.40,0.45,0.30);
-			color2 = vec3(0.75,0.76,0.72);
-			min_height = 0.8;
-			max_height = 1;
-		}
-		
-		// hay que normalizar la altura segun el intervalo en el que se encuentre.
-		// de este modo si la altura normalizada es 0, cogerá el color1
-		// si es 1, cogerá el color 2
-		// y si no, una interpolación entre ambos colores según su altura
-		float norm_height = (h - min_height) / (max_height - min_height);
-		result = mix(color1, color2, norm_height);
-
-		gl_FragColor = vec4(result,1); 
-	}
-);
-
 
 // -------------------------SHADER AGUA-------------------------------
 
@@ -217,7 +147,7 @@ const char* fragment_prog_agua = GLSL(
 
 		float difusa = dot(luz,nn); if (difusa < 0) difusa = 0; 
         float especular = dot(r,v); if (especular < 0) especular = 0; especular = pow(especular,components[3]);
-		float ilu = (components[0] + components[1]*difusa + components[2] * especular); 
+		float ilu = (components[0] + components[1]*difusa + components[2] * especular);  //10% Ambiente + 60% difusa + 30% especular
 	
 		gl_FragColor = vec4(color*ilu,0.6); 
 	}
@@ -230,8 +160,6 @@ const char* fragment_prog_agua = GLSL(
 
 GLFWwindow* window;
 GLuint prog_terreno;
-GLuint prog_terreno_sin_ilu;
-GLuint prog_actual_terreno;
 GLuint prog_agua;
 objeto malla_terreno;
 objeto malla_agua;
@@ -268,6 +196,7 @@ objeto crear_malla(int tipoMalla)
 		printf("No existe el fichero perlin.dat\n");
 	}
 
+
 	// RELLENAR POSICIONES (x,y,z) de los v�rtices de la malla
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < M; j++) {
@@ -303,36 +232,52 @@ objeto crear_malla(int tipoMalla)
 	// calculamos normales del terreno
 	for (i = 0; i < N-1 && tipoMalla == MALLA_TERRENO; i++) {
 		for (j = 0; j < 2*M-1; j+=2) {
+			/*
+			printf("%d %d\n", indexes[i][j], indexes[i][j+1]);
+			printf("	%d %d\n", indexes[i][j+2], indexes[i][j+3]);
+			*/
 
 			int vert1 = indexes[i][j];
 			int vert2 = indexes[i][j+1];
 			int vert3 = indexes[i][j+2];
 			int vert4 = indexes[i][j+3];
 
-			// las posiciones de los 4 vértices que vamos a tomar
+			/*
+			printf("	mod %d %d\n", i, indexes[i][j+1]%M);
+			printf("	v1 %d\n", vert1);
+			printf("	v2 %d\n", vert2);
+			printf("	v3 %d\n", vert3);
+			printf("	v4 %d\n", vert4);
+			*/
+
 			vec3 pos1 = vert[i][vert1%M];
 			vec3 pos2 = vert[i+1][vert2%M];
 			vec3 pos3 = vert[i][vert3%M];
 			vec3 pos4 = vert[i+1][vert4%M];
 
-			// normal del triangulo formado por 1 - 3 - 2
 			vec3 normal1 = pos3 - pos1;
 			vec3 normal2 = pos2 - pos1;
 			vec3 faceNormal = glm::cross(normal1, normal2);
-			// sumamos normal a lo que ya hay en ese vértice
+
+			/*
+			printf("	p1 %f %f %f\n", pos1.x, pos1.y, pos1.z);
+			printf("	p2 %f %f %f\n", pos2.x, pos2.y, pos2.z);
+			printf("	p3 %f %f %f\n", pos3.x, pos3.y, pos3.z);
+
+			printf("	n1 %f %f %f\n", normal1.x, normal1.y, normal1.z);
+			printf("	n2 %f %f %f\n", normal2.x, normal2.y, normal2.z);
+			printf("	face %f %f %f\n", faceNormal.x, faceNormal.y, faceNormal.z);
+
+			*/
 			vert_norm[i][vert1%M] += faceNormal;
 			vert_norm[i+1][vert2%M] += faceNormal;
 			vert_norm[i][vert3%M] += faceNormal;
-
-			// normal del triangulo formado por 4 - 2 - 3
-			normal1 = pos4 - pos2;
-			normal2 = pos4 - pos3;
-			faceNormal = glm::cross(normal1, normal2);
-			// sumamos normal a lo que ya hay en ese vértice
-			vert_norm[i+1][vert2%M] += faceNormal;
-			vert_norm[i][vert3%M] += faceNormal;
 			vert_norm[i+1][vert4%M] += faceNormal;
-		
+			
+			/*
+			printf("	pos %f %f %f\n", pos1.x, pos1.y, pos1.z);
+			printf("	norm %f %f %f\n", vert_norm[i][vert1%M].x, vert_norm[i][vert1%M].y, vert_norm[i][vert1%M].z);
+			*/
 		}
 	}
 
@@ -344,6 +289,7 @@ objeto crear_malla(int tipoMalla)
 		}
 	}
 
+	
 	// Transferencia de posiciones, normales e indices a la GPU
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -359,6 +305,8 @@ objeto crear_malla(int tipoMalla)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);  // Asignados atributos, podemos desconectar BUFFER
 
+	/*
+	*/
 	// TRANSFERENCIA DE NORMALES
 	glGenBuffers(1, &n_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, n_buffer);
@@ -396,11 +344,10 @@ void dibujar_strip(objeto obj)
 
 void init_scene()  
 {
-  prog_terreno_sin_ilu = Compile_Link_Shaders(vertex_prog_terreno, fragment_prog_terreno);
+  //prog_terreno = Compile_Link_Shaders(vertex_prog_terreno, fragment_prog_terreno);
   prog_terreno = Compile_Link_Shaders(vertex_prog_terreno_ilu, fragment_prog_terreno_ilu);
   prog_agua = Compile_Link_Shaders(vertex_prog_agua, fragment_prog_agua);
   glUseProgram(prog_terreno);    // Indicamos que programa vamos a usar 
-  prog_actual_terreno = prog_terreno;
 
   malla_terreno = crear_malla(MALLA_TERRENO);  // Datos del objeto, mandar a GPU
   malla_agua = crear_malla(MALLA_AGUA);
@@ -424,7 +371,7 @@ float t = 0.0f; //tiempo que pasa
 float d=8.0f, az = -0.58f, el = 0.5f;
 float t1 = 0.0f, t2 = 0.0f, t3 = 0.5f;
 
-float zfar = 40.0f;
+float zfar = 20.0f;
 float znear = 1.0f;
 
 vec3 pos_obs;
@@ -432,10 +379,9 @@ vec3 target = vec3(t1,t2,t3);
 vec3 up= vec3(0,0,1);
 
 // PARÁMETROS DE ILUMINACIÓN
-vec3 luz = vec3(2.5, 2, 1.5) / sqrt(2.0f);
+vec3 luz = vec3(1, 1.5, 0.5);
 // Components (ambiental, difusa, especular, exponente)
-vec4 components_terreno = vec4(0.1,0.7,0,5);
-vec4 components_agua = vec4(0,0.5,1,5);
+vec4 components = vec4(0.4,0.4,0.2,5);//vec4(0.6,0.2,0.2,80);
 
 mat4 VV, PP, Model, Matriz, mvp, T, R, S; 
 
@@ -446,7 +392,7 @@ void render_scene()
 {
 	float tt = (float)glfwGetTime();  // Contador de tiempo en segundos 
 
-	glClearColor(0.0f, 0.5f, 0.5f, 0.75f);  // Especifica color (RGB+alfa)	
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);  // Especifica color (RGB+alfa)	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// actualiza posicion observador
@@ -463,7 +409,7 @@ void render_scene()
 	// Rotacion
 	R = rotate(glm::radians(tmp), vec3(0.0f, 0.0f, 1.0f));
 	// Escalado
-	S = scale(vec3(4,4,1));
+	S = scale(vec3(2,2.5,1));
 	// Matriz de modelado
 	Model = T*R*S;
 
@@ -471,14 +417,12 @@ void render_scene()
 	PP = perspective(glm::radians(28.0f), 4.0f / 3.0f, znear, zfar);
 
 	// RENDER TERRENO
-	glUseProgram(prog_actual_terreno);    // Indicamos que programa vamos a usar 
+	glUseProgram(prog_terreno);    // Indicamos que programa vamos a usar 
 	transfer_mat4("VP", PP*VV);
 	transfer_mat4("M", Model);
-	if (prog_actual_terreno != prog_terreno_sin_ilu){
-		transfer_vec3("pos_obs",pos_obs);
-		transfer_vec3("luz", luz);
-		transfer_vec4("components", components_terreno);
-	}
+	transfer_vec3("pos_obs",pos_obs);
+	transfer_vec3("luz", luz);
+	transfer_vec4("components", components);
 	glBindVertexArray(malla_terreno.VAO);  // Activamos VAO asociado al objeto
 	glDrawElements(GL_TRIANGLE_STRIP, malla_terreno.Ni, malla_terreno.tipo_indice, (void*)0);  // Dibujar (indexado)
 	glBindVertexArray(0);
@@ -490,7 +434,7 @@ void render_scene()
 	transfer_mat4("M", Model);
 	transfer_vec3("pos_obs",pos_obs);
 	transfer_vec3("luz", luz);
-	transfer_vec4("components", components_agua);
+	transfer_vec4("components", components);
 	glBindVertexArray(malla_agua.VAO); // Activamos VAO asociado al objeto
 	glDrawElements(GL_TRIANGLE_STRIP, malla_agua.Ni, malla_agua.tipo_indice, (void*)0);  // Dibujar (indexado)
 	glBindVertexArray(0);
@@ -623,11 +567,6 @@ static void KeyCallback(GLFWwindow* window, int key, int code, int action, int m
 			if (t3 < 2.5f) {
 				t3 += 0.1f;
 			}
-		} break;
-
-	 case GLFW_KEY_L:
-	 	if (action == GLFW_PRESS) {
-		  prog_actual_terreno = (prog_actual_terreno == prog_terreno_sin_ilu)? prog_terreno: prog_terreno_sin_ilu;
 		} break;
 	}
 
